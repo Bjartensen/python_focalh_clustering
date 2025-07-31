@@ -33,24 +33,29 @@ class FocalH:
         self.patches = []
         self.values = np.zeros(self.n_poly)
         
-        self.__make_module(self.center_module_rows, self.module_width)
 
-        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,0))
-        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,self.module_width))
-        self.__make_module(self.outer_module_rows, self.module_width, (0,self.module_width)) 
-        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,self.module_width))
-        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,0))
-        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,-self.module_width))
-        self.__make_module(self.outer_module_rows, self.module_width, (0,-self.module_width))
-        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,-self.module_width))
+
+        
+        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,self.module_width)) # 00
+        self.__make_module(self.outer_module_rows, self.module_width, (0,self.module_width)) # 01
+        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,self.module_width)) # 02
+        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,0)) # 10
+        self.__make_module(self.center_module_rows, self.module_width) # 11
+        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,0)) # 12
+        self.__make_module(self.outer_module_rows, self.module_width, (-self.module_width,-self.module_width)) # 20
+        self.__make_module(self.outer_module_rows, self.module_width, (0,-self.module_width)) # 21
+        self.__make_module(self.outer_module_rows, self.module_width, (self.module_width,-self.module_width)) # 22
+        
+
+        
 
         
         self.paths = [polygon.get_path() for polygon in self.polygons]
-
+    
     def __make_module(self, size, width, center=(0,0)):
         d = width / size
         offset = int(size/2)
-        for r in range(size):
+        for r in reversed(range(size)):
             for c in range(size):
                 x = (c-offset)*d + center[0]
                 y = (r-offset)*d + center[1]
