@@ -257,7 +257,7 @@ pyrightconfig.json
 # Custom
 
 # PyTorch files
-.pt
+*.pt
 
 # ROOT
-.root
+*.root
