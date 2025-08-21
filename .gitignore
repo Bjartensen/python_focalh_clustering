@@ -33,7 +33,7 @@
 *.webp
 
 # Portable Network Graphics
-*.png
+# *.png
 
 # Animated Portable Network Graphics
 *.apng
@@ -250,3 +250,14 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/jupyternotebooks,python,images
+
+
+
+
+# Custom
+
+# PyTorch files
+.pt
+
+# ROOT
+.root
