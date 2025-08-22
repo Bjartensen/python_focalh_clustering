@@ -10,3 +10,5 @@ from .train import Train
 from .modified_aggregation import ModifiedAggregation
 
 from .metrics import efficiency, coverage, vmeas,                count_clusters,count_labels
+
+from .focal import FocalH
