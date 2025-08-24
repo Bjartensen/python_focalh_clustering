@@ -259,5 +259,8 @@ pyrightconfig.json
 # PyTorch files
 *.pt
 
+# Pickle files
+*.pkl
+
 # ROOT
 *.root

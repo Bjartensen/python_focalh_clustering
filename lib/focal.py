@@ -115,7 +115,7 @@ class FocalH:
         return (npx, npy, npvals, npfracs, nplabels, nplabelidx, npclusters, npclusteridx)
 
 
-    def heatmap(self, values, labels, ax=None):
+    def heatmap(self, values, labels, ax=None, saturation=4096):
         """
         Generic heatmap created from values and labels.
         Assumes the caller knows the order of cells.
@@ -126,23 +126,17 @@ class FocalH:
 
         c = np.zeros(len(values) * 4).reshape(len(values), 4)
         unique = [int(l) for l in set(labels) if l != 0]
-        print(unique)
-        #norm = Normalize(vmin=0, vmax=4096)
-        norm = Normalize(vmin=0, vmax=249)
+        norm = Normalize(vmin=0, vmax=saturation)
 
         for l in set(labels):
             mask = labels == l
             if l == 0:
                 c[mask] = [1,1,1,1]
+                continue
             c[mask] = plt.colormaps[colors[l-1]](norm(values[mask]))
 
-        for i in range(len(labels)):
-            c[i] = norm(i)
-
-        c[0] = norm(249)
-
         patches = PatchCollection(self.polygons, alpha=1)
-        #patches.set_clim(0, 4096)
+        patches.set_clim(0, saturation)
         patches.set_facecolor(c)
 
         ax.add_collection(patches)
@@ -152,7 +146,6 @@ class FocalH:
 
         return ax
 
-    
     def heatmap_clustered(self, ttree, entry, ax=None, colors=""):
         if ax is None:
             fig, ax = plt.subplots()

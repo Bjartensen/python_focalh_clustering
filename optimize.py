@@ -5,6 +5,10 @@ Script that does:
     Run hyperparameter optimzation with Optuna.
 """
 
+import pickle
+from datetime import datetime
+import sys
+import copy
 import yaml
 import argparse
 from typing import Any
@@ -45,6 +49,33 @@ def run(config, method, its):
 
     # Maybe it should be data.yaml and methods.yaml
 
+
+def save_study(study, config, its, method, model=None):
+    bundle = dict()
+    bundle["method"] = method
+    #bundle["model"] = model
+    bundle["study"] = study
+    bundle["config"] = config
+    bundle["its"] = its
+
+    now = datetime.now()
+    timestamp = now.strftime("%d%m%Y_%H%M%S")
+
+    filename = "study_"+method+"_"+timestamp+".pkl"
+    filename_model = "model_"+method+"_"+timestamp+".pt"
+    dir = "studies/"
+
+    # Save study and extra parameters
+    with open(dir+filename, "wb") as f:
+        pickle.dump(bundle, f)
+
+    if model != None:
+        print("Saving model")
+        # Save model in case of CNN
+        torch.save(model, dir+filename_model)
+
+
+
 def handle_method(config: Any, method_name: str, its: int):
     """
     Function to handle type of method.
@@ -55,13 +86,17 @@ def handle_method(config: Any, method_name: str, its: int):
         case "ma":
             print(f"Optimizing {method_name}")
             study = ma_optimize(config, its)
-            print("Best parameters:", study.best_trial.params)
-            # Save study
+            print("Study done. Saving to file.")
+            save_study(study, config, its, method_name)
+            print("Saved.")
+
         case "cnn":
             print(f"Optimizing {method_name}")
-            study = cnn_optimize(config, its)
-            print("Best parameters:", study.best_trial.params)
-            # Save study
+            study, model = cnn_optimize(config, its)
+            print("Study done. Saving to file.")
+            save_study(study, config, its, method_name, model)
+            print("Saved.")
+
         case _:
             raise ValueError(f"Unknown method: {method_name}")
 
@@ -149,6 +184,8 @@ def p2_data_img(config: Any):
 
 
 # TO-DO: Move to separate file
+# ma_opt.py e.g.
+# then ma_exec for using a trained/optimized model?
 def ma_optimize(config: Any, its: int):
     """
     Optimizing modified aggregation.
@@ -158,7 +195,8 @@ def ma_optimize(config: Any, its: int):
     # Could be part of yaml
     adj = np.load("p2_adj.npy")
     idx = np.load("p2_cell_idx.npy")
-    iadj = np.load("p2_sim_adj_map.npy")
+    #iadj = np.load("p2_sim_adj_map.npy")
+    iadj = np.load("p2_sim_adj_map2.npy")
 
     # Get data
     values, labels = p2_data(config)
@@ -185,7 +223,7 @@ def ma_optimize(config: Any, its: int):
             cov[i] = coverage(clusters[i], labels[i], values[i])
             vm[i] = vmeas(clusters[i], labels[i])
 
-        return (vm.mean()-1)**2
+        return (eff.mean()-1)**2
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
@@ -217,21 +255,31 @@ def cnn_optimize(config: Any, its: int):
 
     dataloader = BNN.Data()
 
-    def objective(trial):
-        u = UNet.UNet()
-        image_criterion = nn.MSELoss() # Could also be hyperparameter
-        seed = trial.suggest_float("seed", 0.01, 1)
-        agg = trial.suggest_float("agg", 0, 1)
-        if agg>=seed: return float("inf")
+    # Store models
+    models = []
 
-        lr = trial.suggest_float("lr", 0.01,1) #0.21
-        #lr = trial.suggest_float("lr", 0.21,0.21) #0.21
-        momentum = trial.suggest_float("momentum", 0.01,1) #0.98
-        #momentum = trial.suggest_float("momentum", 0.98,0.98) #0.98
-        epochs = trial.suggest_int("epochs", 10, 50) #1000
+    def objective(trial):
+
+        image_criterion = nn.MSELoss() # Could also be hyperparameter
+
+        # Hardcode instead. And then maybe always rescale?
+        seed = trial.suggest_float("seed", 0.5, 0.5)
+        agg = trial.suggest_float("agg", 0.0, 0.0)
+        u = UNet.UNet()
+
+        if agg>=seed:
+            models.append(copy.deepcopy(u))
+            return float("inf")
+
+
+        lr = trial.suggest_float("lr", 0.1,1.) #0.21
+        momentum = trial.suggest_float("momentum", 0.1,1.) #0.98
+        epochs = trial.suggest_int("epochs", 10, 100) #1000
 
         trainer = Train(model=u, image_crit=image_criterion, learning_rate=lr, momentum=momentum)
         trainer.run(epochs, event_train, target_train)
+
+        models.append(copy.deepcopy(u))
 
         # Evaluate
         x = u(event_eval)
@@ -252,16 +300,30 @@ def cnn_optimize(config: Any, its: int):
             true_labels = dlabels_eval[i][0].detach().numpy()
             #print(count_clusters(clusters), count_labels(dlabels_eval[i][0]))
             eff[i] = efficiency(clusters, true_labels)
-        print("mu eff:",eff.mean())
-        return (eff.mean()-1)**2
+
+        eval_metric = (eff.mean()-1)**2
+        return eval_metric
 
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
 
-    return study
+    total_memory = sum([sys.getsizeof(model) + get_model_memory_usage(model) for model in models])
+    print(f"Total memory usage: {total_memory / (1024 ** 2):.2f} MB for {len(models)} models")
 
+    best_model = None
+    try:
+        best_model = models[study.best_trial.number]
+    except IndexError:
+        print("No models stored...")
 
+    return study, best_model
+
+def get_model_memory_usage(model):
+    # Calculate memory usage in bytes
+    param_size = sum(p.numel() * p.element_size() for p in model.parameters())
+    buffer_size = sum(b.numel() * b.element_size() for b in model.buffers())
+    return param_size + buffer_size  # in bytes
 
 def sklearn_optimize():
     """

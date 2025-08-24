@@ -210,10 +210,12 @@ class Data(): # or DataLoader, DataTransformer?
 
         # This should be set somewhere else
         MIN = 0
-        MAX = 4096
+        MAX = 4095 # Or 4096??
         # Cutting saturation in original data
+        print(val.max())
         saturated_orig = val >= MAX
         val[saturated_orig] = MAX
+        print(val.max())
 
         # Interpolating
         new_dim = 21
