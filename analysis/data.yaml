@@ -1,14 +1,14 @@
-analysis:
-  type: standard
+test:
+  name: small test set
   files:
-    - path: "data/E150_P5_N1000.root"
-      particles: 5
+    - path: "data/E150_P2_N100.root"
+      particles: 2
       saturation: 4096
       meta:
         source: mc
         detector: prototype2
-    - path: "data/E150_P3_N1000.root"
-      particles: 3
+    - path: "data/E150_P1_N100.root"
+      particles: 1
       saturation: 4096
       meta:
         source: mc

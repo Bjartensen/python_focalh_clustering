@@ -1,0 +1,18 @@
+basic:
+  multiply:
+    name: multiply
+    parameters:
+      - name: factor
+        type: int
+        constant: 100
+        min: 10
+        max: 1000
+      - name: width
+        type: float
+        constant: 1.4525251
+        min: 0.1
+        max: 10
+#  3d:
+#  - 3d:
+#    name: 3d
+#    parameters:

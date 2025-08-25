@@ -14,6 +14,7 @@ import argparse
 from typing import Any
 import numpy as np
 from sklearn.utils import shuffle
+from sklearn import cluster
 import ROOT
 import optuna
 from lib.modified_aggregation import ModifiedAggregation
@@ -25,8 +26,22 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
-def load_config(config_path):
-    with open(config_path, "r") as file:
+DATA = "analysis/data.yaml"
+METHODS = "analysis/methods.yaml"
+TRANSFORMATIONS = "analysis/transformations.yaml"
+
+def load_data(type):
+    with open(DATA, "r") as file:
+        config = yaml.safe_load(file)
+    return config[type]
+
+def load_method(type):
+    with open(METHODS, "r") as file:
+        config = yaml.safe_load(file)
+    return config[type]
+
+def load_transformation():
+    with open(TRANSFORMATIONS, "r") as file:
         config = yaml.safe_load(file)
     return config
 
@@ -37,32 +52,31 @@ def load_config(config_path):
 # Early stopping
 # https://github.com/optuna/optuna/issues/1001#issuecomment-596478792
 
-CONFIG = "../analysis/optimize.yaml"
 
-def run(config, method, its):
-    analysis_type = config["analysis"]["type"]
+def run(data, method, its):
+    analysis_type = data["name"]
     print(f"Running analysis {analysis_type}")
-    print(f"\tOn {method}")
+    print(f"\tOn {method['name']}")
     print(f"\tFor {its} iterations.")
 
-    handle_method(config, method, its)
+    handle_method(data, method, its)
 
     # Maybe it should be data.yaml and methods.yaml
 
 
-def save_study(study, config, its, method, model=None):
+def save_study(study, data, its, method, model=None):
     bundle = dict()
     bundle["method"] = method
     #bundle["model"] = model
     bundle["study"] = study
-    bundle["config"] = config
+    bundle["data"] = data
     bundle["its"] = its
 
     now = datetime.now()
     timestamp = now.strftime("%d%m%Y_%H%M%S")
 
-    filename = "study_"+method+"_"+timestamp+".pkl"
-    filename_model = "model_"+method+"_"+timestamp+".pt"
+    filename = "study_"+method["name"]+"_"+timestamp+".pkl"
+    filename_model = "model_"+method["name"]+"_"+timestamp+".pt"
     dir = "studies/"
 
     # Save study and extra parameters
@@ -76,27 +90,33 @@ def save_study(study, config, its, method, model=None):
 
 
 
-def handle_method(config: Any, method_name: str, its: int):
+def handle_method(data: Any, method: str, its: int):
     """
     Function to handle type of method.
     I decide here what the interface should be for all the methods.
     Hardcode for now but this could also be define in files.
     """
+    method_name = method["name"]
     match method_name.lower():
         case "ma":
             print(f"Optimizing {method_name}")
-            study = ma_optimize(config, its)
+            study = ma_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, config, its, method_name)
+            save_study(study, data, its, method)
             print("Saved.")
 
         case "cnn":
             print(f"Optimizing {method_name}")
-            study, model = cnn_optimize(config, its)
+            study, model = cnn_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, config, its, method_name, model)
+            save_study(study, data, its, method_name, model)
             print("Saved.")
 
+        case "dbscan":
+            print(f"Optimizing {method_name}")
+            # Get model
+            sklearn_optimize(data, method, its)
+            # Send in method and pars?
         case _:
             raise ValueError(f"Unknown method: {method_name}")
 
@@ -105,22 +125,28 @@ def handle_method(config: Any, method_name: str, its: int):
 # Rest can be deduced from this. (???)
 # Then helper functions for labels and clusters to compute efficiency etc
 
-def p2_data(config: Any):
+def p2_data(data: Any):
     # Return labels as well?
-    files = config["analysis"]["files"]
+    files = data["files"]
     length = len(files)
+    l_npy = []
+    l_npx = []
     l_npval = []
     l_npmajorlab = []
 
     for file in files:
-        npval,npmajorlab = read_generic_tfile(file)
+        npx,npy,npval,npmajorlab = read_generic_tfile(file)
+        l_npx.append(npx)
+        l_npy.append(npy)
         l_npval.append(npval)
         l_npmajorlab.append(npmajorlab)
 
-    l_npval = np.concatenate(l_npval)
-    l_npmajorlab = np.concatenate(l_npmajorlab)
+    arr_npx = np.concatenate(l_npx)
+    arr_npy = np.concatenate(l_npy)
+    arr_npval = np.concatenate(l_npval)
+    arr_npmajorlab = np.concatenate(l_npmajorlab)
 
-    return l_npval, l_npmajorlab
+    return arr_npx, arr_npy, arr_npval, arr_npmajorlab
 
 def read_generic_tfile(file):
     tfile = ROOT.TFile(file["path"], "READ")
@@ -129,10 +155,13 @@ def read_generic_tfile(file):
 
     dataloader = BNN.Data()
 
-    # Hardcoded for prototype 2 (and CAEN for saturation)
+    # Hardcoded for prototype 2 (and CAEN/focalsim for saturation)
     FOCAL2_CELLS = 249
     FOCAL2_SAT = 4096
 
+
+    npx = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
+    npy = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
     npval = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
     npmajorlab = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.int32).reshape(Nentries, FOCAL2_CELLS)
 
@@ -140,6 +169,8 @@ def read_generic_tfile(file):
 
     for i in range(Nentries):
         ttree.GetEntry(i)
+        npx[i] = np.array(ttree.x)
+        npy[i] = np.array(ttree.y)
         npval[i] = np.array(ttree.value).clip(max=FOCAL2_SAT)
 
         l = np.array(ttree.labels)
@@ -147,14 +178,14 @@ def read_generic_tfile(file):
         npmajorlab[i] = dataloader.get_major_labels(l,f,num_particles)
 
     tfile.Close()
-    return npval,npmajorlab
+    return npx,npy,npval,npmajorlab
 
 
-def p2_data_img(config: Any):
+def p2_data_img(data: Any):
     """
     Converting generic events to images for the CNN.
     """
-    files = config["analysis"]["files"]
+    files = data["files"]
     Nfiles = len(files)
     event_list = []
     target_list = []
@@ -186,7 +217,7 @@ def p2_data_img(config: Any):
 # TO-DO: Move to separate file
 # ma_opt.py e.g.
 # then ma_exec for using a trained/optimized model?
-def ma_optimize(config: Any, its: int):
+def ma_optimize(data: Any, method: Any, its: int):
     """
     Optimizing modified aggregation.
     """
@@ -199,21 +230,28 @@ def ma_optimize(config: Any, its: int):
     iadj = np.load("p2_sim_adj_map2.npy")
 
     # Get data
-    values, labels = p2_data(config)
+    _,_,values, labels = p2_data(data)
     # Maybe a randomize
     values, labels = shuffle(values, labels)
 
     clusters = np.zeros_like(labels)
 
+
     def objective(trial):
-        seed = trial.suggest_float("seed", 0, 4096)
-        agg = trial.suggest_float("agg", 0, 4096)
-        if agg>=seed: return float("inf")
+        pars = []
+        for i,par in enumerate(method["parameters"]):
+            if par["type"] == "float":
+                pars.append(trial.suggest_float(par['name'], float(par['min']), float(par['max'])))
+            # No other types
+
+
+        if pars[1]>=pars[0]: return float("inf")
 
         # Different function?
-        ma = ModifiedAggregation(seed=seed, agg=agg)
+        ma = ModifiedAggregation(*pars)
 
         # Metric should be an input parameter
+        # Use "score" as generalized name
         eff = np.zeros(len(values), dtype=np.float32)
         cov = np.zeros(len(values), dtype=np.float32)
         vm = np.zeros(len(values), dtype=np.float32)
@@ -230,26 +268,19 @@ def ma_optimize(config: Any, its: int):
     return study
 
 
-def cnn_optimize(config: Any, its: int):
+def cnn_optimize(data: Any, its: int):
     """
     Optimizing CNN.
     """
-    print(f"Optimizing cnn for {its} iterations.")
 
     # Get data
-    events, targets, counts, mapping, dlabels = p2_data_img(config)
+    events, targets, counts, mapping, dlabels = p2_data_img(data)
     event_train, event_eval, \
     target_train, target_eval, \
     count_train, count_eval, \
     mapping_train, mapping_eval, \
     dlabels_train, dlabels_eval \
     = train_test_split(events, targets, counts, mapping, dlabels, test_size=0.4)
-
-    print("eval:",event_eval.shape)
-    print("target:",target_eval.shape)
-    print("count:",count_eval.shape)
-    print("mapping:",mapping_eval.shape)
-    print("dlabels:",dlabels_eval.shape)
 
     adj = np.load("p2_image_adj_21x21.npy")
 
@@ -319,31 +350,113 @@ def cnn_optimize(config: Any, its: int):
 
     return study, best_model
 
+
 def get_model_memory_usage(model):
     # Calculate memory usage in bytes
     param_size = sum(p.numel() * p.element_size() for p in model.parameters())
     buffer_size = sum(b.numel() * b.element_size() for b in model.buffers())
     return param_size + buffer_size  # in bytes
 
-def sklearn_optimize():
+
+def unpack_parameters(pars, trial, config):
+    """
+    Unpack from yaml file the parameters and suggest in one go.
+    """
+    print(config)
+    for i,par in enumerate(config["parameters"]):
+        if par["type"] == "float":
+            pars.append(trial.suggest_float(par['name'], float(par['min']), float(par['max'])))
+        if par["type"] == "int":
+            pars.append(trial.suggest_int(par['name'], int(par['min']), int(par['max'])))
+
+def sklearn_optimize(data, method, its):
     """
     I probably still want them separate, but they will be almost identical.
+    This function can be used to direct the flow.
     """
-    pass
+    trans = load_transformation()["basic"]
+    x,y,z,dlab = p2_data(data)
+    method_name = method["name"]
+
+    N = len(x)
+    xt = [None]*N
+    yt = [None]*N
+
+    def objective(trial):
+        """
+        Data transformation
+        """
+        data_pars = []
+        transformation_types = [name for name, config in trans.items()]
+        transformation_choice = trial.suggest_categorical("trans", transformation_types)
+
+        for i in range(N):
+            xx, yy, zz = transformation(x[i], y[i], z[i], trans[transformation_choice])
+            xt[i] = xx
+            yt[i] = yy
+
+        model = None
+        """
+        Method initialization
+        """
+        match method_name:
+            case "dbscan":
+                pars = []
+                unpack_parameters(pars, trial, method)
+                model = cluster.DBSCAN(*pars)
+            case _:
+                raise ValueError(f"Unknown method: {method_name}")
+
+        """
+        Cluster and evaluate
+        """
+        if method_name == "dbscan":
+            for i in range(len(xt)):
+                X = np.column_stack([xt[i],yt[i]])
+                model.fit(X)
+                if i%10 == 0:
+                    print(i)
+        return 0
+
+
+    study = optuna.create_study()
+    study.optimize(objective, n_trials=its)
+
+    # Same evaluation
+
+def transformation(x, y, z, trans):
+    """
+    Transform the data according to some transformation method.
+    """
+    parameters = trans["parameters"]
+    pars_unpacked = [par["constant"] for par in parameters]
+    dataloader = BNN.Data()
+    match trans["name"]:
+        case "multiply":
+            # Still need to unpack transformation
+            x, y = dataloader.transform_multiply(x, y, z, *pars_unpacked)
+        case "3d":
+            pass
+        case _:
+            raise ValueError(f"Unknown transformation: {trans}")
+
+    return x,y,z
 
 
 
 def main():
     parser = argparse.ArgumentParser(description="Hyperparameter optimization")
-    parser.add_argument("--config", type=str, required=True, help="YAML file path")
+    parser.add_argument("--data", type=str, required=True, help="Dataset (define in yaml)")
     parser.add_argument("--method", type=str, required=True, help="Clustering method")
     parser.add_argument("--its", type=int, required=True, help="Number of iterations")
 
     # Should have: data, method, iterations
 
     args = parser.parse_args()
-    config = load_config(args.config)
-    run(config, args.method, args.its)
+    data = load_data(args.data)
+    method = load_method(args.method)
+
+    run(data, method, args.its)
 
 
 if __name__ == "__main__":

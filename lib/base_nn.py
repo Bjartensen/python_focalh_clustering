@@ -30,6 +30,9 @@ class Data(): # or DataLoader, DataTransformer?
         self.xy_bounds = [self.x_min, self.x_max, self.y_min, self.y_max]
 
 
+    """
+    General methods
+    """
     def center_of_masses(self, x, y, val, labels, fracs, threshold=0):
         """
         A function to return center of masses from original data.
@@ -43,12 +46,12 @@ class Data(): # or DataLoader, DataTransformer?
         return coms
 
 
-
     def get_major_labels(self, labels, fractions, particles):
         fractions_stack = fractions.reshape(particles, -1, order='F').T
         major_label_mask = np.argmax(fractions_stack, axis=1)
         nplabmaj = labels[major_label_mask]
         return nplabmaj
+
 
     def com(self, dim, val, threshold=False):
         """
@@ -65,6 +68,7 @@ class Data(): # or DataLoader, DataTransformer?
             return 0
         return np.dot(dim, val)/val.sum()
 
+
     def reconstruct_single_particle(self, val, labels, fracs, particle_num):
         """
         From fractional contributions, reconstruct the Nth particle.
@@ -73,6 +77,10 @@ class Data(): # or DataLoader, DataTransformer?
         return val * fracs[mask]
 
 
+
+    """
+    Tensor and image transformations
+    """
     def to_training_tensor(self, ttree):
         """
         Convert to images, gaussian class activation maps and other stuff
@@ -297,7 +305,6 @@ class Data(): # or DataLoader, DataTransformer?
         return lowd_l
 
 
-
     def map_highd_to_lowd(lowd_l, highd_l, mapping, value):
         for i in range(len(lowd_l)):
             mask = (mapping == i)
@@ -306,7 +313,42 @@ class Data(): # or DataLoader, DataTransformer?
                 lowd_l[i] = highd_l[mask][best_idx]
         return lowd_l
 
-    
+    """
+    Other transformations
+    Because they may vary in number of points, they can't all be added
+    to a large higher dimensional array. They must be added to lists
+    or the clustering algorithms call the transformations each time.
+    """
+    def transform_multiply(self, x, y, z, factor, width):
+        """
+        Multiply the x,y points dependent on the intensity + noise .
+        """
+
+        # Have some issues with negative (???) or zero values
+        try:
+            z = (factor*z/z.max()).astype(int)
+        except ValueError:
+            z = z.astype(int)
+        mask = z <= 0
+        z[mask] = 1
+
+        x = np.repeat(x, z) + width*np.random.rand(z.sum())-0.5
+        y = np.repeat(y, z) + width*np.random.rand(z.sum())-0.5
+
+        # If I want to normalize, I have to compute the mapping before.
+
+        return x,y
+
+    def transform_3d(self, x, y, z, scale):
+        pass
+
+    def transform_cutoff(self, x, y, z, threshold):
+        pass
+
+
+    """
+    Plotting functions
+    """
     def print_interpolation(self, x, y, val, xi, yi, vali):
         mask = np.isnan(vali)
 
@@ -335,7 +377,6 @@ class Data(): # or DataLoader, DataTransformer?
         ax.set_aspect("equal")
         ax.legend()
         fig.savefig("interpolation.png")
-
 
 
     def plot_tensor_physical(self, T, xy_extent=None, ax=None):
