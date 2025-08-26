@@ -324,26 +324,45 @@ class Data(): # or DataLoader, DataTransformer?
         Multiply the x,y points dependent on the intensity + noise .
         """
 
+        # Check if z.max() lower than 0
+
         # Have some issues with negative (???) or zero values
         try:
-            z = (factor*z/z.max()).astype(int)
+            zz = (factor*z/z.max()).astype(int)
         except ValueError:
-            z = z.astype(int)
-        mask = z <= 0
-        z[mask] = 1
+            zz = z.astype(int)
+        mask = zz <= 0
+        zz[mask] = 0
 
-        x = np.repeat(x, z) + width*np.random.rand(z.sum())-0.5
-        y = np.repeat(y, z) + width*np.random.rand(z.sum())-0.5
+        xx = np.repeat(x, zz) + width*np.random.rand(zz.sum())-0.5
+        yy = np.repeat(y, zz) + width*np.random.rand(zz.sum())-0.5
+
+        # In case of near-empty event
+        if zz.sum() == 0:
+            return x,y
 
         # If I want to normalize, I have to compute the mapping before.
 
-        return x,y
+        return xx,yy
 
     def transform_3d(self, x, y, z, scale):
         pass
 
     def transform_cutoff(self, x, y, z, threshold):
         pass
+
+    def kdtree_map(self, transformed_X, original_X, transformed_labels):
+        """
+        Function to inversely transform new labels to old labels.
+        Use a kdtree to map original points to transformed points
+        and assign corresponding transformed label to origin label.
+        """
+        kdtree = KDTree(transformed_X)
+        dist, idx = kdtree.query(original_X)
+        #mask = dist < 1.4525251/2
+        #mask = dist == dist
+        return transformed_labels[idx]
+
 
 
     """

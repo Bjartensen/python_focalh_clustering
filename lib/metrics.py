@@ -75,3 +75,6 @@ def silh(clusters, labels):
 
 
 
+
+# Probaby want some that take in arrays/lists
+

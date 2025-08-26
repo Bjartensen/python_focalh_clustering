@@ -4,7 +4,7 @@ basic:
     parameters:
       - name: factor
         type: int
-        constant: 100
+        constant: 50
         min: 10
         max: 1000
       - name: width

@@ -14,7 +14,7 @@ import argparse
 from typing import Any
 import numpy as np
 from sklearn.utils import shuffle
-from sklearn import cluster
+from sklearn import cluster, mixture
 import ROOT
 import optuna
 from lib.modified_aggregation import ModifiedAggregation
@@ -25,6 +25,7 @@ from lib import efficiency, coverage, vmeas,               count_clusters,count_
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
 
 DATA = "analysis/data.yaml"
 METHODS = "analysis/methods.yaml"
@@ -114,9 +115,16 @@ def handle_method(data: Any, method: str, its: int):
 
         case "dbscan":
             print(f"Optimizing {method_name}")
-            # Get model
             sklearn_optimize(data, method, its)
-            # Send in method and pars?
+
+        case "hdbscan":
+            print(f"Optimizing {method_name}")
+            sklearn_optimize(data, method, its)
+
+        case "baygauss":
+            print(f"Optimizing {method_name}")
+            sklearn_optimize(data, method, its)
+
         case _:
             raise ValueError(f"Unknown method: {method_name}")
 
@@ -358,16 +366,21 @@ def get_model_memory_usage(model):
     return param_size + buffer_size  # in bytes
 
 
-def unpack_parameters(pars, trial, config):
+def unpack_parameters(par_keys, trial, config):
     """
     Unpack from yaml file the parameters and suggest in one go.
     """
     print(config)
     for i,par in enumerate(config["parameters"]):
+        print("")
         if par["type"] == "float":
-            pars.append(trial.suggest_float(par['name'], float(par['min']), float(par['max'])))
-        if par["type"] == "int":
-            pars.append(trial.suggest_int(par['name'], int(par['min']), int(par['max'])))
+            par_keys[par['name']] = trial.suggest_float(par['name'], float(par['min']), float(par['max']))
+        elif par["type"] == "int":
+            par_keys[par['name']] = trial.suggest_int(par['name'], int(par['min']), int(par['max']))
+        elif par["type"] == "bool":
+            par_keys[par['name']] = trial.suggest_categorical(par['name'], [True, False])
+
+
 
 def sklearn_optimize(data, method, its):
     """
@@ -378,22 +391,23 @@ def sklearn_optimize(data, method, its):
     x,y,z,dlab = p2_data(data)
     method_name = method["name"]
 
+    dataloader = BNN.Data()
     N = len(x)
-    xt = [None]*N
-    yt = [None]*N
 
     def objective(trial):
         """
         Data transformation
         """
+        X = [None]*N # Transformed coordinates
+        Y = [None]*N # Clustered labels of transformed coordinates
+        cl = [None]*N # Could be array of known size
+
         data_pars = []
         transformation_types = [name for name, config in trans.items()]
         transformation_choice = trial.suggest_categorical("trans", transformation_types)
 
         for i in range(N):
-            xx, yy, zz = transformation(x[i], y[i], z[i], trans[transformation_choice])
-            xt[i] = xx
-            yt[i] = yy
+            X[i] = transformation(x[i], y[i], z[i], trans[transformation_choice])
 
         model = None
         """
@@ -401,22 +415,71 @@ def sklearn_optimize(data, method, its):
         """
         match method_name:
             case "dbscan":
-                pars = []
-                unpack_parameters(pars, trial, method)
-                model = cluster.DBSCAN(*pars)
+                pars = dict()
+                unpack_parameters(pars, trial, method) # Also does trial.suggest
+                model = cluster.DBSCAN(**pars)
+            case "hdbscan":
+                pars = dict()
+                unpack_parameters(pars, trial, method) # Also does trial.suggest
+                model = cluster.HDBSCAN(**pars)
+            case "baygauss":
+                pars = dict()
+                unpack_parameters(pars, trial, method) # Also does trial.suggest
+                model = mixture.BayesianGaussianMixture(**pars)
             case _:
                 raise ValueError(f"Unknown method: {method_name}")
 
         """
         Cluster and evaluate
         """
-        if method_name == "dbscan":
-            for i in range(len(xt)):
-                X = np.column_stack([xt[i],yt[i]])
-                model.fit(X)
-                if i%10 == 0:
-                    print(i)
-        return 0
+        print(f"Clustering with {method_name}...")
+        if method["labels"] == True:
+            for i in range(len(X)):
+                model.fit(X[i])
+                Y[i] = model.labels_.astype(int)
+                cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+                cl[i] += 1 # Not clustered is 0 in my clustering methods
+        else:
+            for i in range(len(X)):
+                model.fit(X[i])
+                Y[i] = model.predict(X[i])
+                cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+                cl[i] += 1 # Not clustered is 0 in my clustering methods
+
+        score = np.zeros(N)
+        for i in range(N):
+            score[i] = vmeas(cl[i], dlab[i])
+        print(f"mean of score: {score.mean()}")
+
+        print("Done.")
+        print(f"{len(X)}, {len(Y)}")
+        fig,ax=plt.subplots(nrows=2, ncols=2, figsize=(10,10))
+        fig.suptitle(f"{score.mean()}")
+        for a in ax.flatten():
+            a.set_xlim(-10,10)
+            a.set_ylim(-10,10)
+        test_idx = 55
+
+        print(cl[i])
+
+        ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
+        ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
+
+        for l in set(Y[test_idx]):
+            if l == 0:
+                continue
+            mask = Y[test_idx] == l
+            ax[1][0].scatter(X[test_idx][mask][:,0], X[test_idx][mask][:,1], marker=".")
+
+        for l in set(cl[test_idx]):
+            if l == 0:
+                continue
+            mask = cl[test_idx] == l
+            ax[1][1].scatter(x[test_idx][mask], y[test_idx][mask], marker="s")
+
+        fig.savefig(f"trans_test_{trial.number}.png")
+
+        return (score.mean() - 1)**2
 
 
     study = optuna.create_study()
@@ -433,8 +496,8 @@ def transformation(x, y, z, trans):
     dataloader = BNN.Data()
     match trans["name"]:
         case "multiply":
-            # Still need to unpack transformation
             x, y = dataloader.transform_multiply(x, y, z, *pars_unpacked)
+            return np.column_stack([x,y])
         case "3d":
             pass
         case _:

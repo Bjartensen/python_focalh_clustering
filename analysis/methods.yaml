@@ -29,22 +29,37 @@ cnn:
 # sci-kit learn methods
 dbscan:
   name: dbscan
+  labels: True
+  parametric: False
   parameters:
-    - name: eta
+    - name: eps
       type: float
-      min: 0
-      max: 100
+      min: 0.1
+      max: 5
 
 hdbscan:
+  name: hdbscan
+  labels: True
+  parametric: False
   parameters:
     - name: min_samples
       type: int
-      min: 0
-      max: 100
-    - name: min_cluster_size
+      min: 1
+      max: 20
+    - name: min_cluster_size # I think it has to be relative to number of points...
       type: int
-      min: 0
-      max: 100
+      min: 20 # minimum: 2
+      max: 20
     - name: allow_single_cluster
       type: bool
 
+
+baygauss:
+  name: baygauss
+  labels: False
+  parametric: False
+  parameters:
+    - name: n_components
+      type: int
+      min: 10
+      max: 10
