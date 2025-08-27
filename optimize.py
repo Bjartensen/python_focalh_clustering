@@ -68,7 +68,6 @@ def run(data, method, its):
 def save_study(study, data, its, method, model=None):
     bundle = dict()
     bundle["method"] = method
-    #bundle["model"] = model
     bundle["study"] = study
     bundle["data"] = data
     bundle["its"] = its
@@ -87,8 +86,8 @@ def save_study(study, data, its, method, model=None):
     if model != None:
         print("Saving model")
         # Save model in case of CNN
+        bundle["model_file"] = filename_model
         torch.save(model, dir+filename_model)
-
 
 
 def handle_method(data: Any, method: str, its: int):
@@ -379,6 +378,8 @@ def unpack_parameters(par_keys, trial, config):
             par_keys[par['name']] = trial.suggest_int(par['name'], int(par['min']), int(par['max']))
         elif par["type"] == "bool":
             par_keys[par['name']] = trial.suggest_categorical(par['name'], [True, False])
+        elif par["type"] == "string":
+            par_keys[par['name']] = trial.suggest_categorical(par['name'], par['list'])
 
 
 
@@ -437,14 +438,14 @@ def sklearn_optimize(data, method, its):
             for i in range(len(X)):
                 model.fit(X[i])
                 Y[i] = model.labels_.astype(int)
+                Y[i] += Y[i]+1 # Not clustered is 0 in my clustering methods
                 cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
-                cl[i] += 1 # Not clustered is 0 in my clustering methods
         else:
             for i in range(len(X)):
                 model.fit(X[i])
                 Y[i] = model.predict(X[i])
+                Y[i] += Y[i]+1 # Not clustered is 0 in my clustering methods
                 cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
-                cl[i] += 1 # Not clustered is 0 in my clustering methods
 
         score = np.zeros(N)
         for i in range(N):
@@ -465,6 +466,7 @@ def sklearn_optimize(data, method, its):
         ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
         ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
 
+        print(len([Y[test_idx]]))
         for l in set(Y[test_idx]):
             if l == 0:
                 continue
@@ -502,9 +504,7 @@ def transformation(x, y, z, trans):
             pass
         case _:
             raise ValueError(f"Unknown transformation: {trans}")
-
     return x,y,z
-
 
 
 def main():

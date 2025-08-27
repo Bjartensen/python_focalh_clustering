@@ -63,3 +63,8 @@ baygauss:
       type: int
       min: 10
       max: 10
+    - name: covariance_type
+      type: string
+      list:
+      - "diag"
+      - "full"

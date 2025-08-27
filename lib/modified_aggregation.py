@@ -17,6 +17,9 @@ class ModifiedAggregation:
     def run(self, A, v):
         """
         Main loop that iteratively finds new clusters and calls spreading functions.
+        It finds starting candidates based on seed threshold, and for each starting
+        point it spreads until I can't anymore. Then updates starting candidates
+        (in case some have been absorbed) and finds the next (if exists).
         """
 
         labels = np.zeros_like(v, dtype=np.int32)
