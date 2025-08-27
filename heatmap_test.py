@@ -1,6 +1,6 @@
+import ROOT
 from lib.focal import FocalH
 from lib.modified_aggregation import ModifiedAggregation
-import ROOT
 import numpy as np
 import lib.base_nn as BNN
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ def centroid(vertices):
     return ((xmax+xmin)/2).astype(np.float32), ((ymax+ymin)/2).astype(np.float32)
 
 def main():
-    filename = "/home/bjartur/workspace/python_focalh_clustering/data/E150_P3_N1000.root"
+    filename = "data/E150_P3_N100.root"
     tfile = ROOT.TFile(filename, "READ")
     ttree = tfile.Get("EventsTree")
     Nentries = ttree.GetEntries()
@@ -56,7 +56,7 @@ def main():
     #foc.heatmap(npval[correct_order], labels[correct_order], ax=ax[0])
     #foc.heatmap(npval[iadj][iadj][iadj], cl[iadj][iadj], npx, npy, ax=ax[0][0])
     #foc.heatmap(npval[inv], labels[inv], npx, npy, ax=ax[0][0])
-    foc.heatmap(npval[iadj], cl, npx, npy, ax=ax[0][0])
+    foc.heatmap(npval[iadj], cl, ax=ax[0][0])
 
     # THREE TIMES TO TRANSFORM CORRECTLY
 

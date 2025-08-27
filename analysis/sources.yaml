@@ -1,0 +1,7 @@
+prototype2_focalsim:
+  name: prototype2
+  description: Prototype 2 simulation.
+  cells: 249
+  saturation: 4096
+
+# prototype2_h2gcroc ...

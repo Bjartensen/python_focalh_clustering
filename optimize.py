@@ -163,6 +163,7 @@ def read_generic_tfile(file):
     dataloader = BNN.Data()
 
     # Hardcoded for prototype 2 (and CAEN/focalsim for saturation)
+    # Should be yaml (lol)
     FOCAL2_CELLS = 249
     FOCAL2_SAT = 4096
 
@@ -238,6 +239,7 @@ def ma_optimize(data: Any, method: Any, its: int):
 
     # Get data
     _,_,values, labels = p2_data(data)
+    #_,_,values, labels = p2_data(data)
     # Maybe a randomize
     values, labels = shuffle(values, labels)
 
@@ -257,16 +259,17 @@ def ma_optimize(data: Any, method: Any, its: int):
         # Different function?
         ma = ModifiedAggregation(*pars)
 
-        # Metric should be an input parameter
+        # Metric should be an input parameter defined in yaml
         # Use "score" as generalized name
         eff = np.zeros(len(values), dtype=np.float32)
         cov = np.zeros(len(values), dtype=np.float32)
         vm = np.zeros(len(values), dtype=np.float32)
         for i in range(len(values)):
+            # Technically, all the labels need to be mapped as well
             clusters[i],_ = ma.run(adj, values[i][iadj])
-            eff[i] = efficiency(clusters[i], labels[i])
-            cov[i] = coverage(clusters[i], labels[i], values[i])
-            vm[i] = vmeas(clusters[i], labels[i])
+            eff[i] = efficiency(clusters[i], labels[i][iadj])
+            cov[i] = coverage(clusters[i][iadj], labels[i], values[i][iadj]) # wait this should be mapped??
+            vm[i] = vmeas(clusters[i], labels[i][iadj])
 
         return (eff.mean()-1)**2
 
