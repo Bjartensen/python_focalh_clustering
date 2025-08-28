@@ -9,6 +9,14 @@ Mostly they will depend on true vs predicted labels (cluster assignments).
 And in some cases the adc/energy/intensity value contained in each.
 """
 
+def count(labels):
+    """
+    Count labels. Ignoring label 0 is probably never gonna come into play.
+    """
+    num = list(set([lab for lab in labels if lab!=0]))
+    return len(num)
+
+# Retire
 def count_clusters(clusters):
     """
     Count the number of clusters, ignoring cluster 0 meaning unassigned.
@@ -17,6 +25,7 @@ def count_clusters(clusters):
     return len(num)
 
 
+# Retire
 def count_labels(labels):
     """
     Count labels. Ignoring label 0 is probably never gonna come into play.
@@ -31,12 +40,10 @@ def efficiency(clusters, labels):
     """
     eff = 0
     try:
-        eff = float(count_clusters(clusters)) / float(count_labels(labels))
+        eff = float(count(clusters)) / float(count(labels))
     except ZeroDivisionError:
         eff = 0
     return eff
-
-
 
 def clusters_sum(clusters, values):
     mask = clusters != 0
@@ -74,7 +81,32 @@ def silh(clusters, labels):
     return silhouette_score(clusters, labels)
 
 
-
-
-# Probaby want some that take in arrays/lists
+def compute_score(tags, labels, values, score):
+    """
+    Function to handle which score to compute.
+    Could also be handled in part by yaml (lol).
+    """
+    scores = np.zeros(len(values))
+    if score == "efficiency":
+        for i in range(len(scores)):
+            scores[i] = efficiency(tags[i], labels[i])
+        return scores
+    elif score == "coverage":
+        for i in range(len(scores)):
+            scores[i] = coverage(tags[i], labels[i], values[i])
+        return scores
+    elif score == "vmeasure":
+        for i in range(len(scores)):
+            scores[i] = vmeas(tags[i], labels[i])
+        return scores
+    elif score == "count_labels":
+        for i in range(len(scores)):
+            scores[i] = count(labels[i])
+        return scores
+    elif score == "count_tags":
+        for i in range(len(scores)):
+            scores[i] = count(tags[i])
+        return scores
+    else:
+        return np.ones(len(values))*-1
 

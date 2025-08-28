@@ -18,10 +18,11 @@ from sklearn import cluster, mixture
 import ROOT
 import optuna
 from lib.modified_aggregation import ModifiedAggregation
+from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 import lib.base_nn as BNN
 import lib.unet_nn as UNet
 from lib.train import Train
-from lib import efficiency, coverage, vmeas,               count_clusters,count_labels
+from lib import efficiency, coverage, vmeas, compute_score,              count_clusters,count_labels
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
@@ -109,84 +110,32 @@ def handle_method(data: Any, method: str, its: int):
             print(f"Optimizing {method_name}")
             study, model = cnn_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, data, its, method_name, model)
+            save_study(study, data, its, method, model)
             print("Saved.")
 
         case "dbscan":
             print(f"Optimizing {method_name}")
-            sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its)
+            print("Study done. Saving to file.")
+            save_study(study, data, its, method_name)
+            print("Saved.")
 
         case "hdbscan":
             print(f"Optimizing {method_name}")
-            sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its)
+            print("Study done. Saving to file.")
+            save_study(study, data, its, method_name)
+            print("Saved.")
 
         case "baygauss":
             print(f"Optimizing {method_name}")
-            sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its)
+            print("Study done. Saving to file.")
+            save_study(study, data, its, method_name)
+            print("Saved.")
 
         case _:
             raise ValueError(f"Unknown method: {method_name}")
-
-
-# Any clustering method need only return labels
-# Rest can be deduced from this. (???)
-# Then helper functions for labels and clusters to compute efficiency etc
-
-def p2_data(data: Any):
-    # Return labels as well?
-    files = data["files"]
-    length = len(files)
-    l_npy = []
-    l_npx = []
-    l_npval = []
-    l_npmajorlab = []
-
-    for file in files:
-        npx,npy,npval,npmajorlab = read_generic_tfile(file)
-        l_npx.append(npx)
-        l_npy.append(npy)
-        l_npval.append(npval)
-        l_npmajorlab.append(npmajorlab)
-
-    arr_npx = np.concatenate(l_npx)
-    arr_npy = np.concatenate(l_npy)
-    arr_npval = np.concatenate(l_npval)
-    arr_npmajorlab = np.concatenate(l_npmajorlab)
-
-    return arr_npx, arr_npy, arr_npval, arr_npmajorlab
-
-def read_generic_tfile(file):
-    tfile = ROOT.TFile(file["path"], "READ")
-    ttree = tfile.Get("EventsTree")
-    Nentries = ttree.GetEntries()
-
-    dataloader = BNN.Data()
-
-    # Hardcoded for prototype 2 (and CAEN/focalsim for saturation)
-    # Should be yaml (lol)
-    FOCAL2_CELLS = 249
-    FOCAL2_SAT = 4096
-
-
-    npx = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
-    npy = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
-    npval = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
-    npmajorlab = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.int32).reshape(Nentries, FOCAL2_CELLS)
-
-    num_particles = int(file["particles"])
-
-    for i in range(Nentries):
-        ttree.GetEntry(i)
-        npx[i] = np.array(ttree.x)
-        npy[i] = np.array(ttree.y)
-        npval[i] = np.array(ttree.value).clip(max=FOCAL2_SAT)
-
-        l = np.array(ttree.labels)
-        f = np.array(ttree.fractions)
-        npmajorlab[i] = dataloader.get_major_labels(l,f,num_particles)
-
-    tfile.Close()
-    return npx,npy,npval,npmajorlab
 
 
 def p2_data_img(data: Any):
@@ -231,20 +180,11 @@ def ma_optimize(data: Any, method: Any, its: int):
     """
     print(f"Optimizing modified aggregation for {its} iterations.")
 
-    # Could be part of yaml
-    adj = np.load("p2_adj.npy")
-    idx = np.load("p2_cell_idx.npy")
-    #iadj = np.load("p2_sim_adj_map.npy")
-    iadj = np.load("p2_sim_adj_map2.npy")
 
-    # Get data
-    _,_,values, labels = p2_data(data)
-    #_,_,values, labels = p2_data(data)
-    # Maybe a randomize
+    ma_cluster = ModifiedAggregationClusterer()
+    adj, values, labels = ma_cluster.data(data)
     values, labels = shuffle(values, labels)
-
     clusters = np.zeros_like(labels)
-
 
     def objective(trial):
         pars = []
@@ -257,25 +197,21 @@ def ma_optimize(data: Any, method: Any, its: int):
         if pars[1]>=pars[0]: return float("inf")
 
         # Different function?
-        ma = ModifiedAggregation(*pars)
+        #ma = ModifiedAggregation(*pars)
 
         # Metric should be an input parameter defined in yaml
         # Use "score" as generalized name
-        eff = np.zeros(len(values), dtype=np.float32)
-        cov = np.zeros(len(values), dtype=np.float32)
-        vm = np.zeros(len(values), dtype=np.float32)
-        for i in range(len(values)):
-            # Technically, all the labels need to be mapped as well
-            clusters[i],_ = ma.run(adj, values[i][iadj])
-            eff[i] = efficiency(clusters[i], labels[i][iadj])
-            cov[i] = coverage(clusters[i][iadj], labels[i], values[i][iadj]) # wait this should be mapped??
-            vm[i] = vmeas(clusters[i], labels[i][iadj])
+        score = np.zeros(len(values), dtype=np.float32)
+        tags = ma_cluster.cluster(*pars, adj, values)
 
-        return (eff.mean()-1)**2
+        score = compute_score(tags, labels, values, "efficiency")
+
+        return (score.mean()-1)**2
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
     return study
+
 
 
 def cnn_optimize(data: Any, its: int):
@@ -361,6 +297,7 @@ def cnn_optimize(data: Any, its: int):
     return study, best_model
 
 
+# Should be removed. Mostly temporary.
 def get_model_memory_usage(model):
     # Calculate memory usage in bytes
     param_size = sum(p.numel() * p.element_size() for p in model.parameters())
@@ -368,6 +305,7 @@ def get_model_memory_usage(model):
     return param_size + buffer_size  # in bytes
 
 
+# Could be a yaml_util file
 def unpack_parameters(par_keys, trial, config):
     """
     Unpack from yaml file the parameters and suggest in one go.
@@ -392,10 +330,10 @@ def sklearn_optimize(data, method, its):
     This function can be used to direct the flow.
     """
     trans = load_transformation()["basic"]
-    x,y,z,dlab = p2_data(data)
+    dataloader = BNN.Data()
+    x,y,z,dlab = dataloader.generic_data(data)
     method_name = method["name"]
 
-    dataloader = BNN.Data()
     N = len(x)
 
     def objective(trial):
@@ -452,7 +390,7 @@ def sklearn_optimize(data, method, its):
 
         score = np.zeros(N)
         for i in range(N):
-            score[i] = vmeas(cl[i], dlab[i])
+            score[i] = efficiency(cl[i], dlab[i])
         print(f"mean of score: {score.mean()}")
 
         print("Done.")
@@ -463,8 +401,6 @@ def sklearn_optimize(data, method, its):
             a.set_xlim(-10,10)
             a.set_ylim(-10,10)
         test_idx = 55
-
-        print(cl[i])
 
         ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
         ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
@@ -482,7 +418,7 @@ def sklearn_optimize(data, method, its):
             mask = cl[test_idx] == l
             ax[1][1].scatter(x[test_idx][mask], y[test_idx][mask], marker="s")
 
-        fig.savefig(f"trans_test_{trial.number}.png")
+        fig.savefig(f"dump/trans_test_{trial.number}.png")
 
         return (score.mean() - 1)**2
 
@@ -490,7 +426,8 @@ def sklearn_optimize(data, method, its):
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
 
-    # Same evaluation
+    return study
+
 
 def transformation(x, y, z, trans):
     """

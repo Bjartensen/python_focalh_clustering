@@ -27,6 +27,10 @@ class ModifiedAggregation:
             print("Adjacency matrix must have same number of rows as values.")
             return labels
 
+        if A.shape[0] != A.shape[1]:
+            print("Adjacency matrix must be square.")
+            return labels
+
         labels = np.zeros_like(v, dtype=np.int32)
         count = 0
         tag_it = 1

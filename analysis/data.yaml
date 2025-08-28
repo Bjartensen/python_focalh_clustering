@@ -7,3 +7,18 @@ test:
       meta:
         source: mc
         detector: prototype2
+eval_test:
+  name: small test set
+  files:
+    - path: "data/E150_P2_N1000.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/E150_P5_N1000.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2

@@ -125,10 +125,9 @@ class FocalH:
             fig, ax = plt.subplots()
 
         c = np.zeros(len(values) * 4).reshape(len(values), 4)
-        unique = [int(l) for l in set(labels) if l != 0]
         norm = Normalize(vmin=0, vmax=saturation)
 
-        for l in set(labels):
+        for l in set(np.unique(labels)):
             mask = labels == l
             if l == 0:
                 c[mask] = [1,1,1,1]
