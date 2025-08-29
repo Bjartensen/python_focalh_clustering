@@ -132,7 +132,7 @@ class FocalH:
             if l == 0:
                 c[mask] = [1,1,1,1]
                 continue
-            c[mask] = plt.colormaps[colors[l-1]](norm(values[mask]))
+            c[mask] = plt.colormaps[colors[(l-1)%len(colors)]](norm(values[mask]))
 
         patches = PatchCollection(self.polygons, alpha=1)
         patches.set_clim(0, saturation)

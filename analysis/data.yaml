@@ -7,6 +7,12 @@ test:
       meta:
         source: mc
         detector: prototype2
+    - path: "data/E60_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
 eval_test:
   name: small test set
   files:

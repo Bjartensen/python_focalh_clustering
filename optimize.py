@@ -22,7 +22,8 @@ from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 import lib.base_nn as BNN
 import lib.unet_nn as UNet
 from lib.train import Train
-from lib import efficiency, coverage, vmeas, compute_score,              count_clusters,count_labels
+from lib.focal import FocalH
+from lib import efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
@@ -117,21 +118,21 @@ def handle_method(data: Any, method: str, its: int):
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, data, its, method_name)
+            save_study(study, data, its, method)
             print("Saved.")
 
         case "hdbscan":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, data, its, method_name)
+            save_study(study, data, its, method)
             print("Saved.")
 
         case "baygauss":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
             print("Study done. Saving to file.")
-            save_study(study, data, its, method_name)
+            save_study(study, data, its, method)
             print("Saved.")
 
         case _:
@@ -204,7 +205,7 @@ def ma_optimize(data: Any, method: Any, its: int):
         score = np.zeros(len(values), dtype=np.float32)
         tags = ma_cluster.cluster(*pars, adj, values)
 
-        score = compute_score(tags, labels, values, "efficiency")
+        score = compute_score(tags, labels, values, "average_energy")
 
         return (score.mean()-1)**2
 
@@ -368,57 +369,61 @@ def sklearn_optimize(data, method, its):
                 pars = dict()
                 unpack_parameters(pars, trial, method) # Also does trial.suggest
                 model = mixture.BayesianGaussianMixture(**pars)
+            case "kmeans":
+                pars = dict()
+                unpack_parameters(pars, trial, method) # Also does trial.suggest
+                model = cluster.KMeans(**pars)
             case _:
                 raise ValueError(f"Unknown method: {method_name}")
 
         """
         Cluster and evaluate
         """
-        print(f"Clustering with {method_name}...")
         if method["labels"] == True:
             for i in range(len(X)):
                 model.fit(X[i])
                 Y[i] = model.labels_.astype(int)
-                Y[i] += Y[i]+1 # Not clustered is 0 in my clustering methods
+                Y[i] += 1 # Not clustered is 0 in my clustering methods
                 cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
         else:
             for i in range(len(X)):
                 model.fit(X[i])
                 Y[i] = model.predict(X[i])
-                Y[i] += Y[i]+1 # Not clustered is 0 in my clustering methods
+                Y[i] += 1 # Not clustered is 0 in my clustering methods
                 cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
 
-        score = np.zeros(N)
-        for i in range(N):
-            score[i] = efficiency(cl[i], dlab[i])
-        print(f"mean of score: {score.mean()}")
+        score_type = "average_energy"
+        score = compute_score(cl, dlab, z, score_type)
 
-        print("Done.")
-        print(f"{len(X)}, {len(Y)}")
         fig,ax=plt.subplots(nrows=2, ncols=2, figsize=(10,10))
-        fig.suptitle(f"{score.mean()}")
+        fig.suptitle(f"Score [{score_type}]: {score.mean()} (lower=better)")
         for a in ax.flatten():
             a.set_xlim(-10,10)
             a.set_ylim(-10,10)
         test_idx = 55
 
-        ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
+        iadj = np.load("p2_sim_adj_map2.npy")
+        SAT = 4096
+        foc = FocalH()
+        foc.heatmap(z[test_idx][iadj],dlab[test_idx][iadj],ax[0][0],SAT)
+        #ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
         ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
 
-        print(len([Y[test_idx]]))
         for l in set(Y[test_idx]):
             if l == 0:
                 continue
             mask = Y[test_idx] == l
             ax[1][0].scatter(X[test_idx][mask][:,0], X[test_idx][mask][:,1], marker=".")
 
-        for l in set(cl[test_idx]):
-            if l == 0:
-                continue
-            mask = cl[test_idx] == l
-            ax[1][1].scatter(x[test_idx][mask], y[test_idx][mask], marker="s")
+        foc.heatmap(z[test_idx][iadj],cl[test_idx][iadj],ax[1][1],SAT)
 
-        fig.savefig(f"dump/trans_test_{trial.number}.png")
+        ax[0][0].set_title(f"Original")
+        ax[0][1].set_title(f"Multiplied")
+        ax[1][0].set_title(f"{method_name} clustering")
+        ax[1][1].set_title(f"Mapped back")
+
+        fig.savefig(f"dump/trans_test_{trial.number}.png", bbox_inches="tight")
+        plt.clf()
 
         return (score.mean() - 1)**2
 

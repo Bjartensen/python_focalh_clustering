@@ -45,11 +45,17 @@ def efficiency(clusters, labels):
         eff = 0
     return eff
 
+# Retire
 def clusters_sum(clusters, values):
     mask = clusters != 0
     return values[mask].sum().astype(float)
 
+# Retire
 def labels_sum(labels, values):
+    mask = labels != 0
+    return values[mask].sum().astype(float)
+
+def total(labels, values):
     mask = labels != 0
     return values[mask].sum().astype(float)
 
@@ -59,12 +65,23 @@ def coverage(clusters, labels, values):
     """
     cov = 0
     try:
-        clusters_sum(clusters,values) / labels_sum(labels,values)
+        total(clusters,values) / total(labels,values)
     except ZeroDivisionError:
         cov = 0
 
     return cov
 
+
+def average_energy(clusters, labels, values):
+    try:
+        cl_avg = total(clusters,values) / count(clusters)
+        lab_avg = total(labels,values) / count(labels)
+        # Check for NaN or inf in the result
+        if np.isnan(cl_avg) or np.isnan(lab_avg) or np.isinf(cl_avg) or np.isinf(lab_avg):
+            return 0
+    except ValueError:
+        return 0
+    return cl_avg/lab_avg
 
 def vmeas(clusters, labels):
     return v_measure_score(clusters, labels)
@@ -74,7 +91,11 @@ def vmeas_weighted(clusters, labels, values):
     Implement the weighted form I developed earlier.
     Could be interesting to see how they correlate.
     """
-    pass
+    norm = values / values.max()
+    vals = (100*norm).astype(int)
+    cl = np.repeat(clusters, vals)
+    lab = np.repeat(labels, vals)
+    return v_measure_score(cl, lab)
 
 def silh(clusters, labels):
     # Makes no sense...
@@ -95,9 +116,17 @@ def compute_score(tags, labels, values, score):
         for i in range(len(scores)):
             scores[i] = coverage(tags[i], labels[i], values[i])
         return scores
+    elif score == "average_energy":
+        for i in range(len(scores)):
+            scores[i] = average_energy(tags[i], labels[i], values[i])
+        return scores
     elif score == "vmeasure":
         for i in range(len(scores)):
             scores[i] = vmeas(tags[i], labels[i])
+        return scores
+    elif score == "vmeasure_weighted":
+        for i in range(len(scores)):
+            scores[i] = vmeas_weighted(tags[i], labels[i], values[i])
         return scores
     elif score == "count_labels":
         for i in range(len(scores)):
