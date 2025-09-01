@@ -217,15 +217,15 @@ def cnn_optimize(data: Any, method: Any, its: int):
 
     unet_cluster = UNetClusterer()
 
-    events, targets, counts, mapping, dlabels, energy, adj = unet_cluster.data(data)
+    events, targets, counts, mapping, dlabels, values, energy, adj = unet_cluster.data(data)
     event_train, event_eval, \
     target_train, target_eval, \
     count_train, count_eval, \
     mapping_train, mapping_eval, \
     dlabels_train, dlabels_eval, \
+    values_train, values_eval, \
     energy_train, energy_eval \
-    = train_test_split(events, targets, counts, mapping, dlabels, energy, test_size=0.4)
-
+    = train_test_split(events, targets, counts, mapping, dlabels, values, energy, test_size=0.4)
 
     dataloader = BNN.Data()
 
@@ -242,34 +242,25 @@ def cnn_optimize(data: Any, method: Any, its: int):
             models.append(copy.deepcopy(u))
             return float("inf")
 
-        print(pars)
 
+        # Train
         trainer = Train(model=u, image_crit=image_criterion, learning_rate=pars["lr"], momentum=pars["momentum"])
         trainer.run(pars["epochs"], event_train, target_train)
-
-        # after training, use the unet_clusterer initialization
-
         models.append(copy.deepcopy(u))
 
-        # Evaluate
-        x = u(event_eval)
 
-        # ModifiedAggregation
-        # Do the max stuff?
-        ma = ModifiedAggregation(seed=pars["seed"], agg=pars["agg"])
-        eff = np.zeros(len(x), dtype=np.float32)
-        for i in range(len(x)):
-            vals = x[i][0].flatten().detach().numpy()
-            clusters,_ = ma.run(adj, vals)
-            lab = dataloader.invert_labels(clusters, mapping_eval[i][0].detach().numpy(), vals, dlabels_eval[i][0].shape[0])
-            # Should be able to map new clusters to old labels now
-            #eff[i] = float(1) / float(count_eval[i])
-            true_labels = dlabels_eval[i][0].detach().numpy()
-            #print(count_clusters(clusters), count_labels(dlabels_eval[i][0]))
-            eff[i] = efficiency(clusters, true_labels)
+        tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], adj, dlabels_eval, mapping_eval)
+        labels_sq = dlabels_eval.squeeze().detach().numpy()
+        values_sq = values_eval.squeeze().detach().numpy()
+        print(f"TAGS: {tags.sum()}")
+        print(f"LABELS: {labels_sq.sum()}")
+        print(f"VALUES: {values_sq.sum()}")
+        score = compute_score(tags, labels_sq, values_sq, "efficiency")
 
-        eval_metric = (eff.mean()-1)**2
-        return eval_metric
+        return (score.mean()-1)**2
+
+        #eval_metric = (eff.mean()-1)**2
+        #return eval_metric
 
 
     study = optuna.create_study()

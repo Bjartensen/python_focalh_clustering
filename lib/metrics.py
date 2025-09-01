@@ -78,8 +78,10 @@ def average_intensity_ratio(clusters, labels, values):
         lab_avg = total(labels,values) / count(labels)
         # Check for NaN or inf in the result
         if np.isnan(cl_avg) or np.isnan(lab_avg) or np.isinf(cl_avg) or np.isinf(lab_avg):
+            print("isnan")
             return 0
     except ValueError:
+        print("valueerror")
         return 0
     return cl_avg/lab_avg
 

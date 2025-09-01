@@ -32,7 +32,7 @@ cnn:
       max: 1
     - name: epochs
       type: int
-      min: 10
+      min: 100
       max: 100
 
 # sci-kit learn methods

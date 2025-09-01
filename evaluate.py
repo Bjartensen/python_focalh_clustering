@@ -16,17 +16,6 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
 
-
-
-
-
-
-
-
-
-
-
-
 DATA = "analysis/data.yaml"
 METHODS = "analysis/methods.yaml"
 TRANSFORMATIONS = "analysis/transformations.yaml"
@@ -59,6 +48,9 @@ def run(data: Any, study: Any):
 
     result["data"] = data
     result["study"] = study
+    result["tags"] = tags
+    result["labels"] = labels
+    result["values"] = values
     result["efficiency"] = eff
     result["vmeasure"] = vmeas
     result["vmeasure_weighted"] = vmeas_weighted

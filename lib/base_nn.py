@@ -159,11 +159,12 @@ class Data(): # or DataLoader, DataTransformer?
         target_list = []
         mapping_list = []
         dlabels_list = []
+        values_list = []
         energy_list = []
 
         for i in range(entries):
             try:
-                ret, coms, dlabels, mapping, energy = self.ttree_to_tensor(ttree, i)
+                ret, coms, dlabels, values, mapping, energy = self.ttree_to_tensor(ttree, i)
                 target = self.gaussian_class_activation_map(coms, 21, 21, 3)
                 count = torch.tensor(len(coms), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
             except RuntimeError:
@@ -174,6 +175,7 @@ class Data(): # or DataLoader, DataTransformer?
             target_list.append(target)
             mapping_list.append(torch.from_numpy(mapping).unsqueeze(0).unsqueeze(0))
             dlabels_list.append(torch.from_numpy(dlabels).unsqueeze(0).unsqueeze(0))
+            values_list.append(torch.from_numpy(values).unsqueeze(0).unsqueeze(0))
             energy_list.append(energy)
 
         image_tensor = torch.cat(image_list, dim=0)
@@ -181,6 +183,7 @@ class Data(): # or DataLoader, DataTransformer?
         count_tensor = torch.cat(count_list, dim=0)
         mapping_tensor = torch.cat(mapping_list, dim=0)
         dlabels_tensor = torch.cat(dlabels_list, dim=0)
+        values_tensor = torch.cat(values_list, dim=0)
 
         data = {
             "event": image_tensor,
@@ -188,6 +191,7 @@ class Data(): # or DataLoader, DataTransformer?
             "count" : count_tensor,
             "mapping": mapping_tensor,
             "dlabels": dlabels_tensor,
+            "values": values_tensor,
             "energy": energy_list,
             "metadata": {"version": 1},
         }
@@ -211,7 +215,7 @@ class Data(): # or DataLoader, DataTransformer?
         npdlabels = self.get_major_labels(nplabels, npfracs, len(coms))
         event_tensor, mapping = self.generic_to_tensor(npx,npy,npval)
 
-        return event_tensor, coms, npdlabels, mapping, npenergy
+        return event_tensor, coms, npdlabels, npval, mapping, npenergy
 
 
     def gaussian_class_activation_map(self, points, img_x_dim, img_y_dim, kernel_size=3):
