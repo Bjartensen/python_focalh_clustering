@@ -98,18 +98,20 @@ class Data(): # or DataLoader, DataTransformer?
         npval = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
         npdlab = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.int32).reshape(Nentries, FOCAL2_CELLS)
         num_particles = int(file["particles"])
+        npenergy = np.zeros(Nentries*num_particles).reshape(Nentries,num_particles)
 
         for i in range(Nentries):
             ttree.GetEntry(i)
-            npx[i] = np.array(ttree.x)
-            npy[i] = np.array(ttree.y)
-            npval[i] = np.array(ttree.value).clip(max=FOCAL2_SAT)
+            npx[i] = np.array(ttree.x, dtype=np.float32)
+            npy[i] = np.array(ttree.y, dtype=np.float32)
+            npval[i] = np.array(ttree.value, dtype=np.float32).clip(max=FOCAL2_SAT)
+            npenergy[i] = np.array(ttree.energies, dtype=np.float32)
             l = np.array(ttree.labels)
             f = np.array(ttree.fractions)
             npdlab[i] = self.get_major_labels(l,f,num_particles)
         tfile.Close()
 
-        return npx,npy,npval,npdlab
+        return npx,npy,npval,npdlab,npenergy
 
     def generic_data(self, config):
         """
@@ -125,20 +127,23 @@ class Data(): # or DataLoader, DataTransformer?
         l_npx = []
         l_npval = []
         l_npdlab = []
+        l_energy = []
 
         for file in files:
-            npx,npy,npval,npdlab = self.read_tfile(file)
+            npx,npy,npval,npdlab,npenergy = self.read_tfile(file)
             l_npx.append(npx)
             l_npy.append(npy)
             l_npval.append(npval)
             l_npdlab.append(npdlab)
+            for e in npenergy:
+                l_energy.append(e)
 
         arr_npx = np.concatenate(l_npx)
         arr_npy = np.concatenate(l_npy)
         arr_npval = np.concatenate(l_npval)
         arr_npdlab = np.concatenate(l_npdlab)
 
-        return arr_npx, arr_npy, arr_npval, arr_npdlab
+        return arr_npx, arr_npy, arr_npval, arr_npdlab, l_energy
 
 
     """
@@ -149,16 +154,16 @@ class Data(): # or DataLoader, DataTransformer?
         Convert to images, gaussian class activation maps and other stuff
         """
         entries = ttree.GetEntries()
-        print(f"Converting {entries} events...")
         image_list = []
         count_list = []
         target_list = []
         mapping_list = []
         dlabels_list = []
+        energy_list = []
 
         for i in range(entries):
             try:
-                ret, coms, dlabels, mapping = self.ttree_to_tensor(ttree, i)
+                ret, coms, dlabels, mapping, energy = self.ttree_to_tensor(ttree, i)
                 target = self.gaussian_class_activation_map(coms, 21, 21, 3)
                 count = torch.tensor(len(coms), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
             except RuntimeError:
@@ -169,6 +174,7 @@ class Data(): # or DataLoader, DataTransformer?
             target_list.append(target)
             mapping_list.append(torch.from_numpy(mapping).unsqueeze(0).unsqueeze(0))
             dlabels_list.append(torch.from_numpy(dlabels).unsqueeze(0).unsqueeze(0))
+            energy_list.append(energy)
 
         image_tensor = torch.cat(image_list, dim=0)
         target_tensor = torch.cat(target_list, dim=0)
@@ -182,6 +188,7 @@ class Data(): # or DataLoader, DataTransformer?
             "count" : count_tensor,
             "mapping": mapping_tensor,
             "dlabels": dlabels_tensor,
+            "energy": energy_list,
             "metadata": {"version": 1},
         }
 
@@ -198,24 +205,13 @@ class Data(): # or DataLoader, DataTransformer?
         npval = np.array(ttree.value, dtype=np.float32)
         npfracs = np.array(ttree.fractions, dtype=np.float32)
         nplabels = np.array(ttree.labels, dtype=np.int32)
+        npenergy = np.array(ttree.energies, dtype=np.float32)
 
         coms = self.center_of_masses(npx, npy, npval, nplabels, npfracs, 0.75)
         npdlabels = self.get_major_labels(nplabels, npfracs, len(coms))
-
-        # And mapping
         event_tensor, mapping = self.generic_to_tensor(npx,npy,npval)
 
-
-        #fig, ax = plt.subplots()
-        #self.plot_tensor_physical(event_tensor[0][0], xy_extent=None, ax=ax)
-        #ax.scatter(coms[:,0], coms[:,1], marker="x", s=200, linewidths=1)
-        #fig.savefig("tensor_physical_com.png", bbox_inches="tight")
-
-        # Use get_major_labels
-
-        # Labels and mapping
-
-        return event_tensor, coms, npdlabels, mapping
+        return event_tensor, coms, npdlabels, mapping, npenergy
 
 
     def gaussian_class_activation_map(self, points, img_x_dim, img_y_dim, kernel_size=3):
@@ -283,10 +279,8 @@ class Data(): # or DataLoader, DataTransformer?
         MIN = 0
         MAX = 4095 # Or 4096??
         # Cutting saturation in original data
-        print(val.max())
         saturated_orig = val >= MAX
         val[saturated_orig] = MAX
-        print(val.max())
 
         # Interpolating
         new_dim = 21

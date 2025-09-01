@@ -10,6 +10,9 @@ from .train import Train
 from .modified_aggregation import ModifiedAggregation
 from .modified_aggregation_clusterer import ModifiedAggregationClusterer
 
+
+from .unet_clusterer import UNetClusterer
+
 from .metrics import efficiency, coverage, vmeas, compute_score, average_energy,                count_clusters,count_labels
 
 from .focal import FocalH

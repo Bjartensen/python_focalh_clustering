@@ -12,19 +12,28 @@ ma:
 
 
 cnn:
+  name: cnn
   parameters:
-    - name: ma_seed
+    - name: seed
       type: float
-      fixed: 0.5
-      min: 0.0
-      max: 1.0
-    - name: ma_agg
+      min: 0.2
+      max: 0.2
+    - name: agg
       type: float
       min: 0.0
-      max: 1.0
-
-
-
+      max: 0.0
+    - name: lr
+      type: float
+      min: 0.001
+      max: 1
+    - name: momentum
+      type: float
+      min: 0.01
+      max: 1
+    - name: epochs
+      type: int
+      min: 10
+      max: 100
 
 # sci-kit learn methods
 kmeans:

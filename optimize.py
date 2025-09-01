@@ -21,6 +21,7 @@ from lib.modified_aggregation import ModifiedAggregation
 from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 import lib.base_nn as BNN
 import lib.unet_nn as UNet
+from lib.unet_clusterer import UNetClusterer
 from lib.train import Train
 from lib.focal import FocalH
 from lib import efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
@@ -58,6 +59,7 @@ def load_transformation():
 
 def run(data, method, its):
     analysis_type = data["name"]
+    print(method)
     print(f"Running analysis {analysis_type}")
     print(f"\tOn {method['name']}")
     print(f"\tFor {its} iterations.")
@@ -150,18 +152,19 @@ def p2_data_img(data: Any):
     count_list = []
     mapping_list = []
     dlabel_list = []
+    energy_list = []
     dataloader = BNN.Data()
     for file in files:
         tfile = ROOT.TFile(file["path"], "READ")
         ttree = tfile.Get("EventsTree")
-        print(file)
         data = dataloader.to_training_tensor(ttree)
         event_list.append(data["event"])
         target_list.append(data["target"])
         count_list.append(data["count"])
         mapping_list.append(data["mapping"])
         dlabel_list.append(data["dlabels"])
-
+        for e in data["energy"]:
+            energy_list.append(e)
 
     events = torch.cat(event_list)
     targets = torch.cat(target_list)
@@ -169,7 +172,7 @@ def p2_data_img(data: Any):
     mapping = torch.cat(mapping_list)
     dlabels = torch.cat(dlabel_list)
 
-    return events, targets, counts, mapping, dlabels
+    return events, targets, counts, mapping, dlabels, energy_list
 
 
 # TO-DO: Move to separate file
@@ -181,32 +184,20 @@ def ma_optimize(data: Any, method: Any, its: int):
     """
     print(f"Optimizing modified aggregation for {its} iterations.")
 
-
     ma_cluster = ModifiedAggregationClusterer()
-    adj, values, labels = ma_cluster.data(data)
+    adj, values, labels, _ = ma_cluster.data(data)
     values, labels = shuffle(values, labels)
     clusters = np.zeros_like(labels)
 
     def objective(trial):
-        pars = []
-        for i,par in enumerate(method["parameters"]):
-            if par["type"] == "float":
-                pars.append(trial.suggest_float(par['name'], float(par['min']), float(par['max'])))
-            # No other types
-
-
-        if pars[1]>=pars[0]: return float("inf")
-
-        # Different function?
-        #ma = ModifiedAggregation(*pars)
+        pars = dict()
+        unpack_parameters(pars, trial, method) # Also does trial.suggest
+        if pars["agg"]>=pars["seed"]: return float("inf")
 
         # Metric should be an input parameter defined in yaml
-        # Use "score" as generalized name
         score = np.zeros(len(values), dtype=np.float32)
-        tags = ma_cluster.cluster(*pars, adj, values)
-
-        score = compute_score(tags, labels, values, "average_energy")
-
+        tags = ma_cluster.cluster(pars["seed"], pars["agg"], adj, values)
+        score = compute_score(tags, labels, values, "average_intensity_ratio")
         return (score.mean()-1)**2
 
     study = optuna.create_study()
@@ -215,21 +206,26 @@ def ma_optimize(data: Any, method: Any, its: int):
 
 
 
-def cnn_optimize(data: Any, its: int):
+def cnn_optimize(data: Any, method: Any, its: int):
     """
     Optimizing CNN.
     """
 
     # Get data
-    events, targets, counts, mapping, dlabels = p2_data_img(data)
+    #events, targets, counts, mapping, dlabels, energy = p2_data_img(data)
+    #adj = np.load("p2_image_adj_21x21.npy")
+
+    unet_cluster = UNetClusterer()
+
+    events, targets, counts, mapping, dlabels, energy, adj = unet_cluster.data(data)
     event_train, event_eval, \
     target_train, target_eval, \
     count_train, count_eval, \
     mapping_train, mapping_eval, \
-    dlabels_train, dlabels_eval \
-    = train_test_split(events, targets, counts, mapping, dlabels, test_size=0.4)
+    dlabels_train, dlabels_eval, \
+    energy_train, energy_eval \
+    = train_test_split(events, targets, counts, mapping, dlabels, energy, test_size=0.4)
 
-    adj = np.load("p2_image_adj_21x21.npy")
 
     dataloader = BNN.Data()
 
@@ -237,37 +233,30 @@ def cnn_optimize(data: Any, its: int):
     models = []
 
     def objective(trial):
-
+        pars = dict()
+        unpack_parameters(pars, trial, method) # Also does trial.suggest
         image_criterion = nn.MSELoss() # Could also be hyperparameter
-
-        # Hardcode instead. And then maybe always rescale?
-        seed = trial.suggest_float("seed", 0.5, 0.5)
-        agg = trial.suggest_float("agg", 0.0, 0.0)
         u = UNet.UNet()
 
-        if agg>=seed:
+        if pars["agg"]>=pars["seed"]:
             models.append(copy.deepcopy(u))
             return float("inf")
 
+        print(pars)
 
-        lr = trial.suggest_float("lr", 0.1,1.) #0.21
-        momentum = trial.suggest_float("momentum", 0.1,1.) #0.98
-        epochs = trial.suggest_int("epochs", 10, 100) #1000
+        trainer = Train(model=u, image_crit=image_criterion, learning_rate=pars["lr"], momentum=pars["momentum"])
+        trainer.run(pars["epochs"], event_train, target_train)
 
-        trainer = Train(model=u, image_crit=image_criterion, learning_rate=lr, momentum=momentum)
-        trainer.run(epochs, event_train, target_train)
+        # after training, use the unet_clusterer initialization
 
         models.append(copy.deepcopy(u))
 
         # Evaluate
         x = u(event_eval)
-        torch.save(event_eval, "eval_"+str(trial.number)+".pt")
-        torch.save(x, "x_"+str(trial.number)+".pt")
-        torch.save(count_eval, "count_"+str(trial.number)+".pt")
 
         # ModifiedAggregation
         # Do the max stuff?
-        ma = ModifiedAggregation(seed=seed, agg=agg)
+        ma = ModifiedAggregation(seed=pars["seed"], agg=pars["agg"])
         eff = np.zeros(len(x), dtype=np.float32)
         for i in range(len(x)):
             vals = x[i][0].flatten().detach().numpy()

@@ -15,13 +15,6 @@ class ModifiedAggregationClusterer:
         # Reference 
         pass
 
-    @classmethod
-    def from_study(cls, study):
-        """
-        Read Optuna study object and use parameters
-        """
-        pass
-
 
     def data(self, config):
         """
@@ -34,10 +27,10 @@ class ModifiedAggregationClusterer:
         dataloader = BNN.Data()
         adj = np.load("p2_adj.npy")
         iadj = np.load("p2_sim_adj_map2.npy")
-        _,_,arr_npval,arr_npdlab = dataloader.generic_data(config)
+        _,_,arr_npval,arr_npdlab,l_energy = dataloader.generic_data(config)
 
         # Return adjacency and mapped values and labels
-        return adj, arr_npval[:, iadj], arr_npdlab[:, iadj]
+        return adj, arr_npval[:, iadj], arr_npdlab[:, iadj], l_energy
 
 
     def event_data(self, ttree, event):

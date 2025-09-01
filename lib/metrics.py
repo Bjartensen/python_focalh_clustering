@@ -65,14 +65,14 @@ def coverage(clusters, labels, values):
     """
     cov = 0
     try:
-        total(clusters,values) / total(labels,values)
+        cov = total(clusters,values) / total(labels,values)
     except ZeroDivisionError:
         cov = 0
 
     return cov
 
 
-def average_energy(clusters, labels, values):
+def average_intensity_ratio(clusters, labels, values):
     try:
         cl_avg = total(clusters,values) / count(clusters)
         lab_avg = total(labels,values) / count(labels)
@@ -101,6 +101,15 @@ def silh(clusters, labels):
     # Makes no sense...
     return silhouette_score(clusters, labels)
 
+def average_energy(energy):
+    """
+    Simple function to convert a variable size list of
+    energies to numpy with average.
+    """
+    en = np.zeros(len(energy))
+    for i in range(len(energy)):
+        en[i] = np.mean(energy[i])
+    return en
 
 def compute_score(tags, labels, values, score):
     """
@@ -116,9 +125,9 @@ def compute_score(tags, labels, values, score):
         for i in range(len(scores)):
             scores[i] = coverage(tags[i], labels[i], values[i])
         return scores
-    elif score == "average_energy":
+    elif score == "average_intensity_ratio":
         for i in range(len(scores)):
-            scores[i] = average_energy(tags[i], labels[i], values[i])
+            scores[i] = average_intensity_ratio(tags[i], labels[i], values[i])
         return scores
     elif score == "vmeasure":
         for i in range(len(scores)):
