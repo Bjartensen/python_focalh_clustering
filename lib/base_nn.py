@@ -366,6 +366,7 @@ class Data(): # or DataLoader, DataTransformer?
         return lowd_l
 
 
+    """
     def map_highd_to_lowd(lowd_l, highd_l, mapping, value):
         for i in range(len(lowd_l)):
             mask = (mapping == i)
@@ -373,6 +374,7 @@ class Data(): # or DataLoader, DataTransformer?
                 best_idx = np.argmax(value[mask])
                 lowd_l[i] = highd_l[mask][best_idx]
         return lowd_l
+    """
 
     """
     Other transformations

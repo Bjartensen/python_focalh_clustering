@@ -57,13 +57,16 @@ class UNetClusterer:
 
     def cluster(self, events, unet_model, ma_seed, ma_agg, adj, labels, mapping):
         x = unet_model(events)
-        ma = ModifiedAggregation(seed=ma_seed, agg=ma_agg)
         dataloader = BNN.Data()
         Ncells = labels.shape[2]
         Nentries = len(x)
         tags = np.zeros(Nentries*Ncells, dtype=np.int32).reshape(Nentries,Ncells)
         for i in range(Nentries):
             vals = x[i][0].flatten().detach().numpy()
+            max_val = vals.max()
+            seed_rel = max_val*ma_seed
+            agg_rel = max_val*ma_agg # 0 anywas mostly
+            ma = ModifiedAggregation(seed=seed_rel, agg=agg_rel)
             clusters,_ = ma.run(adj, vals)
             lab = dataloader.invert_labels(clusters, mapping[i][0].detach().numpy(), vals, Ncells)
             tags[i] = lab

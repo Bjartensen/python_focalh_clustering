@@ -83,15 +83,15 @@ def save_study(study, data, its, method, model=None):
     filename_model = "model_"+method["name"]+"_"+timestamp+".pt"
     dir = "studies/"
 
-    # Save study and extra parameters
-    with open(dir+filename, "wb") as f:
-        pickle.dump(bundle, f)
-
     if model != None:
         print("Saving model")
         # Save model in case of CNN
         bundle["model_file"] = filename_model
         torch.save(model, dir+filename_model)
+
+    # Save study and extra parameters
+    with open(dir+filename, "wb") as f:
+        pickle.dump(bundle, f)
 
 
 def handle_method(data: Any, method: str, its: int):
@@ -252,15 +252,9 @@ def cnn_optimize(data: Any, method: Any, its: int):
         tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], adj, dlabels_eval, mapping_eval)
         labels_sq = dlabels_eval.squeeze().detach().numpy()
         values_sq = values_eval.squeeze().detach().numpy()
-        print(f"TAGS: {tags.sum()}")
-        print(f"LABELS: {labels_sq.sum()}")
-        print(f"VALUES: {values_sq.sum()}")
         score = compute_score(tags, labels_sq, values_sq, "efficiency")
 
         return (score.mean()-1)**2
-
-        #eval_metric = (eff.mean()-1)**2
-        #return eval_metric
 
 
     study = optuna.create_study()

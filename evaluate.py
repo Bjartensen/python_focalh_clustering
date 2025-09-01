@@ -81,6 +81,9 @@ def handle_method(data: Any, study: Any):
         adj, values, labels, energy = cluster.data(data) # Should also return energy I think
         tags = cluster.cluster(pars["seed"], pars["agg"], adj, values)
         return tags, labels, values, energy
+    if name == "cnn":
+        print(study)
+        pass
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate clustering method")

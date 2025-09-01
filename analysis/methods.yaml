@@ -16,10 +16,12 @@ cnn:
   parameters:
     - name: seed
       type: float
+      relative: True
       min: 0.2
       max: 0.2
     - name: agg
       type: float
+      relative: True
       min: 0.0
       max: 0.0
     - name: lr
@@ -32,8 +34,8 @@ cnn:
       max: 1
     - name: epochs
       type: int
-      min: 100
-      max: 100
+      min: 50
+      max: 200
 
 # sci-kit learn methods
 kmeans:
