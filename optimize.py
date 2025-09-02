@@ -105,35 +105,35 @@ def handle_method(data: Any, method: str, its: int):
         case "ma":
             print(f"Optimizing {method_name}")
             study = ma_optimize(data, method, its)
-            print("Study done. Saving to file.")
+            print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method)
             print("Saved.")
 
         case "cnn":
             print(f"Optimizing {method_name}")
             study, model = cnn_optimize(data, method, its)
-            print("Study done. Saving to file.")
+            print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method, model)
             print("Saved.")
 
         case "dbscan":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
-            print("Study done. Saving to file.")
+            print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method)
             print("Saved.")
 
         case "hdbscan":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
-            print("Study done. Saving to file.")
+            print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method)
             print("Saved.")
 
         case "baygauss":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its)
-            print("Study done. Saving to file.")
+            print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method)
             print("Saved.")
 
@@ -197,7 +197,7 @@ def ma_optimize(data: Any, method: Any, its: int):
         # Metric should be an input parameter defined in yaml
         score = np.zeros(len(values), dtype=np.float32)
         tags = ma_cluster.cluster(pars["seed"], pars["agg"], adj, values)
-        score = compute_score(tags, labels, values, "average_intensity_ratio")
+        score = compute_score(tags, labels, values, "efficiency")
         return (score.mean()-1)**2
 
     study = optuna.create_study()
@@ -249,9 +249,11 @@ def cnn_optimize(data: Any, method: Any, its: int):
         models.append(copy.deepcopy(u))
 
 
+        print("Clustering...")
         tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], adj, dlabels_eval, mapping_eval)
         labels_sq = dlabels_eval.squeeze().detach().numpy()
         values_sq = values_eval.squeeze().detach().numpy()
+        print("Computing score...")
         score = compute_score(tags, labels_sq, values_sq, "efficiency")
 
         return (score.mean()-1)**2

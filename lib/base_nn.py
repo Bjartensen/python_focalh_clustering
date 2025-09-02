@@ -295,7 +295,10 @@ class Data(): # or DataLoader, DataTransformer?
         negatives = inter[2] < 0
         inter[2][negatives] = 0
         interpolated_sum = inter[2].sum()
-        scaled_interpolated_values = inter[2]*(orig_sum/interpolated_sum)
+        if interpolated_sum <= 0:
+            scaled_interpolated_values = inter[2]
+        else:
+            scaled_interpolated_values = inter[2]*(orig_sum/interpolated_sum)
         normalized_scaled_interpolated_values = scaled_interpolated_values/scaled_interpolated_values.max()
         normalized_scaled_interpolated_values = np.flipud(normalized_scaled_interpolated_values.T).copy()
         tensor_values = torch.tensor(normalized_scaled_interpolated_values, dtype=torch.float32)

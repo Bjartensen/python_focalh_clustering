@@ -35,11 +35,10 @@ class ModifiedAggregation:
         count = 0
         tag_it = 1
         clusters = 0
-        while(count < 1E6):
+        while(count < 1E3):
             seed_mask = v < self.seed
             limit_mask = labels != 0
             masked_data = ma.masked_array(v, mask = seed_mask | limit_mask)
-            
             if np.all(masked_data.mask):  # Check if all elements are masked
                 break
             max_index = masked_data.argmax()
@@ -48,6 +47,8 @@ class ModifiedAggregation:
             clusters += 1
             tag_it += 1
             count += 1
+            if count >= 1E3:
+                print(f"Stopped after {count} its")
 
         #print(labels, clusters)
         return labels, clusters
@@ -64,7 +65,7 @@ class ModifiedAggregation:
         # later make into while
         labels_temp = np.ones_like(labels)*-1
         count = 0
-        while(count < 1E6):
+        while(count < 1E3):
             count += 1
             limit_mask = labels == 0
 
@@ -75,6 +76,8 @@ class ModifiedAggregation:
             spread_to_idx = np.where(spread_mask)[0]
             for icell in spread_to_idx:
                 self.spread_step(A,v,icell,spread_mask,labels,tag)
+            if count >= 1E3:
+                print(f"Stopped after {count} its")
 
 
     def spread_step(self,A,v,cell,spread_mask,labels,tag):

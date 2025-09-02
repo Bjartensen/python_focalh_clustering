@@ -38,11 +38,11 @@ def efficiency(clusters, labels):
     """
     Compute the efficieny (clusters-per-particle)
     """
-    eff = 0
+    eff = -100
     try:
         eff = float(count(clusters)) / float(count(labels))
     except ZeroDivisionError:
-        eff = 0
+        eff = -100
     return eff
 
 # Retire
@@ -78,7 +78,6 @@ def average_intensity_ratio(clusters, labels, values):
         lab_avg = total(labels,values) / count(labels)
         # Check for NaN or inf in the result
         if np.isnan(cl_avg) or np.isnan(lab_avg) or np.isinf(cl_avg) or np.isinf(lab_avg):
-            print("isnan")
             return 0
     except ValueError:
         print("valueerror")
@@ -148,5 +147,5 @@ def compute_score(tags, labels, values, score):
             scores[i] = count(tags[i])
         return scores
     else:
-        return np.ones(len(values))*-1
+        return np.ones(len(values))*-100
 
