@@ -605,6 +605,609 @@ train_small:
 
 
 
+eval_small:
+  name: small
+  files:
+    - path: "data/eval/EVAL_E350_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E350_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E300_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E250_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E200_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E150_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E100_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E80_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E60_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E40_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P1_N100.root"
+      particles: 1
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P2_N100.root"
+      particles: 2
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P3_N100.root"
+      particles: 3
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P4_N100.root"
+      particles: 4
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P5_N100.root"
+      particles: 5
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P6_N100.root"
+      particles: 6
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P7_N100.root"
+      particles: 7
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P8_N100.root"
+      particles: 8
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P9_N100.root"
+      particles: 9
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/eval/EVAL_E20_P10_N100.root"
+      particles: 10
+      saturation: 4096
+      meta:
+        source: mc
+        detector: prototype2
 
 
 

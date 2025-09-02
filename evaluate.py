@@ -39,11 +39,13 @@ def run(data: Any, study: Any):
 
     result = dict()
 
+    print("Computing metrics...")
+
     # Compute different things
     # Efficiency
     eff = compute_score(tags, labels, values, "efficiency")
     vmeas = compute_score(tags, labels, values, "vmeasure")
-    vmeas_weighted = compute_score(tags, labels, values, "vmeasure_weighted")
+    #vmeas_weighted = compute_score(tags, labels, values, "vmeasure_weighted")
     coverage = compute_score(tags, labels, values, "coverage")
     particles = compute_score(tags, labels, values, "count_labels")
     avg_energy = average_energy(energy)
@@ -55,7 +57,7 @@ def run(data: Any, study: Any):
     result["values"] = values
     result["efficiency"] = eff
     result["vmeasure"] = vmeas
-    result["vmeasure_weighted"] = vmeas_weighted
+    #result["vmeasure_weighted"] = vmeas_weighted
     result["coverage"] = coverage
     result["particles"] = particles
     result["avg_energy"] = avg_energy
