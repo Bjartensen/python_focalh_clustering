@@ -12,6 +12,7 @@ from .modified_aggregation_clusterer import ModifiedAggregationClusterer
 
 
 from .unet_clusterer import UNetClusterer
+from .sklearn_clusterer import SklearnClusterer
 
 from .metrics import efficiency, coverage, vmeas, compute_score, average_energy,                count_clusters,count_labels
 

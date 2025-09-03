@@ -1217,14 +1217,14 @@ eval_small:
 test:
   name: small test set
   files:
-    - path: "data/train/TRAIN_E350_P1_N100.root"
-      particles: 1
+    - path: "data/train/TRAIN_E150_P3_N100.root"
+      particles: 3
       saturation: 4096
       meta:
         source: mc
         detector: prototype2
-    - path: "data/train/TRAIN_E150_P3_N100.root"
-      particles: 3
+    - path: "data/train/TRAIN_E350_P1_N100.root"
+      particles: 1
       saturation: 4096
       meta:
         source: mc

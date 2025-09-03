@@ -143,7 +143,15 @@ class Data(): # or DataLoader, DataTransformer?
         arr_npval = np.concatenate(l_npval)
         arr_npdlab = np.concatenate(l_npdlab)
 
-        return arr_npx, arr_npy, arr_npval, arr_npdlab, l_energy
+        d = dict()
+        d["x"] = arr_npx
+        d["y"] = arr_npy
+        d["values"] = arr_npval
+        d["labels"] = arr_npdlab
+        d["energy"] = l_energy
+
+        #return arr_npx, arr_npy, arr_npval, arr_npdlab, l_energy
+        return d
 
 
     """

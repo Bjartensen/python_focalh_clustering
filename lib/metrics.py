@@ -38,7 +38,7 @@ def efficiency(clusters, labels):
     """
     Compute the efficieny (clusters-per-particle)
     """
-    eff = -100
+    eff = float(-100)
     try:
         eff = float(count(clusters)) / float(count(labels))
     except ZeroDivisionError:
@@ -74,6 +74,9 @@ def coverage(clusters, labels, values):
 
 def average_intensity_ratio(clusters, labels, values):
     try:
+        #RuntimeWarning: invalid value encountered in scalar divide
+        #cl_avg = total(clusters,values) / count(clusters)
+
         cl_avg = total(clusters,values) / count(clusters)
         lab_avg = total(labels,values) / count(labels)
         # Check for NaN or inf in the result
@@ -117,7 +120,7 @@ def compute_score(tags, labels, values, score):
     Function to handle which score to compute.
     Could also be handled in part by yaml (lol).
     """
-    scores = np.zeros(len(values))
+    scores = np.zeros(len(values), dtype=np.float32)
     if score == "efficiency":
         for i in range(len(scores)):
             scores[i] = efficiency(tags[i], labels[i])

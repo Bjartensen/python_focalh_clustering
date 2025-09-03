@@ -85,7 +85,7 @@ def handle_method(data: Any, study: Any):
         adj, values, labels, energy = cluster.data(data) # Should also return energy I think
         tags = cluster.cluster(pars["seed"], pars["agg"], adj, values)
         return tags, labels, values, energy
-    if name == "cnn":
+    elif name == "cnn":
         pars = study["study"].best_params
         cluster = UNetClusterer()
         events, targets, counts, mapping, labels, values, energy, adj = cluster.data(data)
@@ -93,6 +93,15 @@ def handle_method(data: Any, study: Any):
         u = torch.load(str(p.parent)+"/"+study["model_file"], weights_only=False)
         tags = cluster.cluster(events, u, pars["seed"], pars["agg"], adj, labels, mapping)
         return tags, labels.squeeze().detach().numpy(), values.squeeze().detach().numpy(), energy
+    elif name in ["hdbscan"]:
+        pars = study["study"].best_params
+        cluster = SklearClusterer()
+        d = cluster.data(data)
+        tags = cluster.cluster(data, trans[transformation_choice], method, **pars)
+        pass
+    else:
+        return
+
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate clustering method")

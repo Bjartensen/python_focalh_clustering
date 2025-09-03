@@ -22,6 +22,7 @@ from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 import lib.base_nn as BNN
 import lib.unet_nn as UNet
 from lib.unet_clusterer import UNetClusterer
+from lib.sklearn_clusterer import SklearnClusterer
 from lib.train import Train
 from lib.focal import FocalH
 from lib import efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
@@ -287,9 +288,7 @@ def unpack_parameters(par_keys, trial, config):
     """
     Unpack from yaml file the parameters and suggest in one go.
     """
-    print(config)
     for i,par in enumerate(config["parameters"]):
-        print("")
         if par["type"] == "float":
             par_keys[par['name']] = trial.suggest_float(par['name'], float(par['min']), float(par['max']))
         elif par["type"] == "int":
@@ -308,124 +307,59 @@ def sklearn_optimize(data, method, its):
     """
     trans = load_transformation()["basic"]
     dataloader = BNN.Data()
-    x,y,z,dlab = dataloader.generic_data(data)
-    method_name = method["name"]
 
-    N = len(x)
+    sk_cluster = SklearnClusterer()
+    d = sk_cluster.data(data)
 
     def objective(trial):
-        """
-        Data transformation
-        """
-        X = [None]*N # Transformed coordinates
-        Y = [None]*N # Clustered labels of transformed coordinates
-        cl = [None]*N # Could be array of known size
-
-        data_pars = []
         transformation_types = [name for name, config in trans.items()]
         transformation_choice = trial.suggest_categorical("trans", transformation_types)
-
-        for i in range(N):
-            X[i] = transformation(x[i], y[i], z[i], trans[transformation_choice])
-
-        model = None
-        """
-        Method initialization
-        """
-        match method_name:
-            case "dbscan":
-                pars = dict()
-                unpack_parameters(pars, trial, method) # Also does trial.suggest
-                model = cluster.DBSCAN(**pars)
-            case "hdbscan":
-                pars = dict()
-                unpack_parameters(pars, trial, method) # Also does trial.suggest
-                model = cluster.HDBSCAN(**pars)
-            case "baygauss":
-                pars = dict()
-                unpack_parameters(pars, trial, method) # Also does trial.suggest
-                model = mixture.BayesianGaussianMixture(**pars)
-            case "kmeans":
-                pars = dict()
-                unpack_parameters(pars, trial, method) # Also does trial.suggest
-                model = cluster.KMeans(**pars)
-            case _:
-                raise ValueError(f"Unknown method: {method_name}")
 
         """
         Cluster and evaluate
         """
-        if method["labels"] == True:
-            for i in range(len(X)):
-                model.fit(X[i])
-                Y[i] = model.labels_.astype(int)
-                Y[i] += 1 # Not clustered is 0 in my clustering methods
-                cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
-        else:
-            for i in range(len(X)):
-                model.fit(X[i])
-                Y[i] = model.predict(X[i])
-                Y[i] += 1 # Not clustered is 0 in my clustering methods
-                cl[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+        # Before this you need to check if oracle
+        # use sk_cluster
+        # sk_cluster(X,)
+        pars = dict()
+        unpack_parameters(pars, trial, method) # Also does trial.suggest
 
-        score_type = "average_energy"
-        score = compute_score(cl, dlab, z, score_type)
+        tags = sk_cluster.cluster(d, trans[transformation_choice], method, **pars)
 
-        fig,ax=plt.subplots(nrows=2, ncols=2, figsize=(10,10))
-        fig.suptitle(f"Score [{score_type}]: {score.mean()} (lower=better)")
+        score_type = "efficiency"
+        score = compute_score(tags, d["labels"], d["values"], score_type)
+
+
+        """
+        test_idx = 55
+        fig,ax=plt.subplots(nrows=1, ncols=2, figsize=(10,5))
+        fig.suptitle(f"Score [{score_type}]: {score[test_idx]:.3f}, mean: {score.mean():.3f} (1 is best)")
         for a in ax.flatten():
             a.set_xlim(-10,10)
             a.set_ylim(-10,10)
-        test_idx = 55
 
         iadj = np.load("p2_sim_adj_map2.npy")
         SAT = 4096
         foc = FocalH()
-        foc.heatmap(z[test_idx][iadj],dlab[test_idx][iadj],ax[0][0],SAT)
+        foc.heatmap(d["values"][test_idx][iadj],d["labels"][test_idx][iadj],ax[0],SAT)
         #ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
-        ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
+        #ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
 
-        for l in set(Y[test_idx]):
-            if l == 0:
-                continue
-            mask = Y[test_idx] == l
-            ax[1][0].scatter(X[test_idx][mask][:,0], X[test_idx][mask][:,1], marker=".")
+        foc.heatmap(d["values"][test_idx][iadj],tags[test_idx][iadj],ax[1],SAT)
 
-        foc.heatmap(z[test_idx][iadj],cl[test_idx][iadj],ax[1][1],SAT)
-
-        ax[0][0].set_title(f"Original")
-        ax[0][1].set_title(f"Multiplied")
-        ax[1][0].set_title(f"{method_name} clustering")
-        ax[1][1].set_title(f"Mapped back")
+        ax[0].set_title(f"Original")
+        ax[1].set_title(f"Mapped back")
 
         fig.savefig(f"dump/trans_test_{trial.number}.png", bbox_inches="tight")
         plt.clf()
+        """
 
         return (score.mean() - 1)**2
-
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
 
     return study
-
-
-def transformation(x, y, z, trans):
-    """
-    Transform the data according to some transformation method.
-    """
-    parameters = trans["parameters"]
-    pars_unpacked = [par["constant"] for par in parameters]
-    dataloader = BNN.Data()
-    match trans["name"]:
-        case "multiply":
-            x, y = dataloader.transform_multiply(x, y, z, *pars_unpacked)
-            return np.column_stack([x,y])
-        case "3d":
-            pass
-        case _:
-            raise ValueError(f"Unknown transformation: {trans}")
-    return x,y,z
 
 
 def main():
