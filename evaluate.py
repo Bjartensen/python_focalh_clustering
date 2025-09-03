@@ -10,6 +10,7 @@ import numpy as np
 import optuna
 from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 from lib.unet_clusterer import UNetClusterer
+from lib.sklearn_clusterer import SklearnClusterer
 from lib.focal import FocalH
 from lib import efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
 import torch
@@ -32,6 +33,34 @@ def open_bundle(filename):
         loaded_bundle = pickle.load(f)
     loaded_bundle["load_path"] = filename
     return loaded_bundle
+
+def split_trans_method(d):
+    """
+    Split values in study parameters to differnt dicts by namespace
+    """
+    tnamespace = "trans::"
+    mnamespace = "method::"
+    tdict = dict()
+    tdict_pars = dict()
+    mdict = dict()
+
+    # transform
+    for key,value in d.items():
+        if key.startswith(tnamespace):
+            spl = key.split(tnamespace)[1]
+            if spl == "type":
+                tdict["name"] = value
+            else:
+                tdict_pars[spl] = value
+    tdict["parameters"] = tdict_pars
+
+    # method
+    for key,value in d.items():
+        if key.startswith(mnamespace):
+            spl = key.split(mnamespace)[1]
+            mdict[spl] = value
+
+    return tdict,mdict
 
 def run(data: Any, study: Any):
     print("Running evaluation")
@@ -95,10 +124,11 @@ def handle_method(data: Any, study: Any):
         return tags, labels.squeeze().detach().numpy(), values.squeeze().detach().numpy(), energy
     elif name in ["hdbscan"]:
         pars = study["study"].best_params
-        cluster = SklearClusterer()
+        trans_pars, method_pars = split_trans_method(pars)
+        cluster = SklearnClusterer()
         d = cluster.data(data)
-        tags = cluster.cluster(data, trans[transformation_choice], method, **pars)
-        pass
+        tags = cluster.cluster(d, trans_pars, study["method"], method_pars)
+        return tags, d["labels"], d["values"], d["energy"]
     else:
         return
 

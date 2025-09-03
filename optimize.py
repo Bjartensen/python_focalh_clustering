@@ -60,7 +60,6 @@ def load_transformation():
 
 def run(data, method, its):
     analysis_type = data["name"]
-    print(method)
     print(f"Running analysis {analysis_type}")
     print(f"\tOn {method['name']}")
     print(f"\tFor {its} iterations.")
@@ -284,19 +283,19 @@ def get_model_memory_usage(model):
 
 
 # Could be a yaml_util file
-def unpack_parameters(par_keys, trial, config):
+def unpack_parameters(par_keys, trial, config, prefix=""):
     """
     Unpack from yaml file the parameters and suggest in one go.
     """
     for i,par in enumerate(config["parameters"]):
         if par["type"] == "float":
-            par_keys[par['name']] = trial.suggest_float(par['name'], float(par['min']), float(par['max']))
+            par_keys[par['name']] = trial.suggest_float(prefix+par['name'], float(par['min']), float(par['max']))
         elif par["type"] == "int":
-            par_keys[par['name']] = trial.suggest_int(par['name'], int(par['min']), int(par['max']))
+            par_keys[par['name']] = trial.suggest_int(prefix+par['name'], int(par['min']), int(par['max']))
         elif par["type"] == "bool":
-            par_keys[par['name']] = trial.suggest_categorical(par['name'], [True, False])
+            par_keys[par['name']] = trial.suggest_categorical(prefix+par['name'], [True, False])
         elif par["type"] == "string":
-            par_keys[par['name']] = trial.suggest_categorical(par['name'], par['list'])
+            par_keys[par['name']] = trial.suggest_categorical(prefix+par['name'], par['list'])
 
 
 
@@ -312,8 +311,13 @@ def sklearn_optimize(data, method, its):
     d = sk_cluster.data(data)
 
     def objective(trial):
+        trans_pars = dict()
         transformation_types = [name for name, config in trans.items()]
-        transformation_choice = trial.suggest_categorical("trans", transformation_types)
+        transformation_choice = trial.suggest_categorical("trans::type", transformation_types)
+        trans_pars["name"] = transformation_choice
+        trans_pars_dict = dict()
+        unpack_parameters(trans_pars_dict, trial, trans[transformation_choice], prefix="trans::") # Also does trial.suggest
+        trans_pars["parameters"] = trans_pars_dict
 
         """
         Cluster and evaluate
@@ -321,10 +325,10 @@ def sklearn_optimize(data, method, its):
         # Before this you need to check if oracle
         # use sk_cluster
         # sk_cluster(X,)
-        pars = dict()
-        unpack_parameters(pars, trial, method) # Also does trial.suggest
+        method_pars = dict()
+        unpack_parameters(method_pars, trial, method, prefix="method::") # Also does trial.suggest
 
-        tags = sk_cluster.cluster(d, trans[transformation_choice], method, **pars)
+        tags = sk_cluster.cluster(d, trans_pars, method, method_pars)
 
         score_type = "efficiency"
         score = compute_score(tags, d["labels"], d["values"], score_type)
@@ -342,8 +346,6 @@ def sklearn_optimize(data, method, its):
         SAT = 4096
         foc = FocalH()
         foc.heatmap(d["values"][test_idx][iadj],d["labels"][test_idx][iadj],ax[0],SAT)
-        #ax[0][0].scatter(x[test_idx], y[test_idx], s=50*z[test_idx]/z[test_idx].max())
-        #ax[0][1].scatter(X[test_idx][:,0], X[test_idx][:,1], marker=".")
 
         foc.heatmap(d["values"][test_idx][iadj],tags[test_idx][iadj],ax[1],SAT)
 

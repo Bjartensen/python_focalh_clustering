@@ -15,23 +15,6 @@ class SklearnClusterer:
         pass
 
 
-    def transformation(self, x, y, z, trans):
-        """
-        Transform the data according to some transformation method.
-        Why is this in this class?
-        """
-        parameters = trans["parameters"]
-        pars_unpacked = [par["constant"] for par in parameters]
-        dataloader = BNN.Data()
-        match trans["name"]:
-            case "multiply":
-                x, y = dataloader.transform_multiply(x, y, z, *pars_unpacked)
-                return np.column_stack([x,y])
-            case "3d":
-                pass
-            case _:
-                raise ValueError(f"Unknown transformation: {trans}")
-        return x,y,z
 
 
     def data(self, config):
@@ -47,6 +30,25 @@ class SklearnClusterer:
 
         # Return adjacency and mapped values and labels
         return data
+
+
+    def transformation(self, x, y, z, trans):
+        """
+        Transform the data according to some transformation method.
+        Why is this in this class?
+        """
+        parameters = trans["parameters"]
+        pars_unpacked = [value for key,value in parameters.items()]
+        dataloader = BNN.Data()
+        match trans["name"]:
+            case "multiply":
+                x, y = dataloader.transform_multiply(x, y, z, **parameters)
+                return np.column_stack([x,y])
+            case "3d":
+                pass
+            case _:
+                raise ValueError(f"Unknown transformation: {trans}")
+        return x,y,z
 
 
     def event_data(self, ttree, event):
@@ -73,12 +75,13 @@ class SklearnClusterer:
 
     #def cluster(self, seed, agg, A, values):
     # Just pass in a named dictionary
-    def cluster(self, data, trans, method, **method_pars):
+    def cluster(self, data, trans, method, method_pars):
         """
         Transform and cluster
         """
 
-        #d = self.data(data)
+        # Unpack trans and method pars?
+
         x = data["x"]
         y = data["y"]
         z = data["values"]

@@ -5,13 +5,13 @@ basic:
       - name: factor
         type: int
         constant: 50
-        min: 10
-        max: 1000
+        min: 50
+        max: 50
       - name: width
         type: float
         constant: 1.4525251
-        min: 0.1
-        max: 10
+        min: 1.4525251
+        max: 1.4525251
 #  3d:
 #  - 3d:
 #    name: 3d
