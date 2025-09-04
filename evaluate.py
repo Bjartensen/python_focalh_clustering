@@ -64,9 +64,10 @@ def split_trans_method(d):
 
 def run(data: Any, study: Any):
     print("Running evaluation")
-    tags, labels, values, energy = handle_method(data, study)
+    #tags, labels, values, energy = handle_method(data, study)
+    result = handle_method(data, study)
 
-    result = dict()
+    #result = dict()
 
     print("Computing metrics...")
 
@@ -79,11 +80,13 @@ def run(data: Any, study: Any):
     particles = compute_score(tags, labels, values, "count_labels")
     avg_energy = average_energy(energy)
 
+    """
     result["data"] = data
     result["study"] = study
-    result["tags"] = tags
+    result["tags"] = d["tags"]
     result["labels"] = labels
     result["values"] = values
+    """
     result["efficiency"] = eff
     result["vmeasure"] = vmeas
     #result["vmeasure_weighted"] = vmeas_weighted
@@ -127,8 +130,8 @@ def handle_method(data: Any, study: Any):
         trans_pars, method_pars = split_trans_method(pars)
         cluster = SklearnClusterer()
         d = cluster.data(data)
-        tags = cluster.cluster(d, trans_pars, study["method"], method_pars)
-        return tags, d["labels"], d["values"], d["energy"]
+        d["tags"] = cluster.cluster(d, trans_pars, study["method"], method_pars)
+        return d
     else:
         return
 

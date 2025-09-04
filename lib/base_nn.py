@@ -87,7 +87,6 @@ class Data(): # or DataLoader, DataTransformer?
         ttree = tfile.Get("EventsTree")
         Nentries = ttree.GetEntries()
 
-
         # Hardcoded for prototype 2 (and CAEN/focalsim for saturation)
         # Should be yaml (lol)
         FOCAL2_CELLS = 249
@@ -99,6 +98,7 @@ class Data(): # or DataLoader, DataTransformer?
         npdlab = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.int32).reshape(Nentries, FOCAL2_CELLS)
         num_particles = int(file["particles"])
         npenergy = np.zeros(Nentries*num_particles).reshape(Nentries,num_particles)
+        npcoms = np.zeros(Nentries*num_particles*2).reshape(Nentries,num_particles,2)
 
         for i in range(Nentries):
             ttree.GetEntry(i)
@@ -109,9 +109,19 @@ class Data(): # or DataLoader, DataTransformer?
             l = np.array(ttree.labels)
             f = np.array(ttree.fractions)
             npdlab[i] = self.get_major_labels(l,f,num_particles)
+            npcoms[i] = self.center_of_masses(npx[i], npy[i], npval[i], l, f, 0.75)
         tfile.Close()
 
-        return npx,npy,npval,npdlab,npenergy
+        # Change to dict
+        ret = dict()
+        ret["x"] = npx
+        ret["y"] = npy
+        ret["values"] = npval
+        ret["labels"] = npdlab
+        ret["energy"] = npenergy
+        ret["coms"] = npcoms
+
+        return ret
 
     def generic_data(self, config):
         """
@@ -128,14 +138,16 @@ class Data(): # or DataLoader, DataTransformer?
         l_npval = []
         l_npdlab = []
         l_energy = []
+        l_com = []
 
         for file in files:
-            npx,npy,npval,npdlab,npenergy = self.read_tfile(file)
-            l_npx.append(npx)
-            l_npy.append(npy)
-            l_npval.append(npval)
-            l_npdlab.append(npdlab)
-            for e in npenergy:
+            d = self.read_tfile(file)
+            l_npx.append(d["x"])
+            l_npy.append(d["y"])
+            l_npval.append(d["values"])
+            l_npdlab.append(d["labels"])
+            l_com.append(d["coms"])
+            for e in d["energy"]:
                 l_energy.append(e)
 
         arr_npx = np.concatenate(l_npx)
@@ -149,8 +161,8 @@ class Data(): # or DataLoader, DataTransformer?
         d["values"] = arr_npval
         d["labels"] = arr_npdlab
         d["energy"] = l_energy
+        d["coms"] = l_com
 
-        #return arr_npx, arr_npy, arr_npval, arr_npdlab, l_energy
         return d
 
 
