@@ -66,6 +66,7 @@ def run(data: Any, study: Any):
     print("Running evaluation")
     #tags, labels, values, energy = handle_method(data, study)
     result = handle_method(data, study)
+    tags = result["tags"]
 
     #result = dict()
 
@@ -73,12 +74,12 @@ def run(data: Any, study: Any):
 
     # Compute different things
     # Efficiency
-    eff = compute_score(tags, labels, values, "efficiency")
-    vmeas = compute_score(tags, labels, values, "vmeasure")
+    eff = compute_score(result["tags"], result["labels"], result["values"], "efficiency")
+    vmeas = compute_score(result["tags"], result["labels"], result["values"], "vmeasure")
     #vmeas_weighted = compute_score(tags, labels, values, "vmeasure_weighted")
-    coverage = compute_score(tags, labels, values, "coverage")
-    particles = compute_score(tags, labels, values, "count_labels")
-    avg_energy = average_energy(energy)
+    coverage = compute_score(result["tags"], result["labels"], result["values"], "coverage")
+    particles = compute_score(result["tags"], result["labels"], result["values"], "count_labels")
+    avg_energy = average_energy(result["energy"])
 
     """
     result["data"] = data
@@ -130,6 +131,7 @@ def handle_method(data: Any, study: Any):
         trans_pars, method_pars = split_trans_method(pars)
         cluster = SklearnClusterer()
         d = cluster.data(data)
+        #tags = cluster.cluster(d, trans_pars, method, method_pars)
         d["tags"] = cluster.cluster(d, trans_pars, study["method"], method_pars)
         return d
     else:
