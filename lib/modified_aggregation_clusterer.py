@@ -27,10 +27,13 @@ class ModifiedAggregationClusterer:
         dataloader = BNN.Data()
         adj = np.load("p2_adj.npy")
         iadj = np.load("p2_sim_adj_map2.npy")
-        _,_,arr_npval,arr_npdlab,l_energy = dataloader.generic_data(config)
-
+        #_,_,arr_npval,arr_npdlab,l_energy = dataloader.generic_data(config)
+        d = dataloader.generic_data(config)
+        d["adj"] = adj
+        d["iadj"] = iadj
         # Return adjacency and mapped values and labels
-        return adj, arr_npval[:, iadj], arr_npdlab[:, iadj], l_energy
+        #return adj, arr_npval[:, iadj], arr_npdlab[:, iadj], l_energy
+        return d
 
 
     def event_data(self, ttree, event):

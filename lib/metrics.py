@@ -150,5 +150,5 @@ def compute_score(tags, labels, values, score):
             scores[i] = count(tags[i])
         return scores
     else:
-        return np.ones(len(values))*-100
+        raise ValueError(f"Metric {score} not recognized.")
 

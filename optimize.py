@@ -141,39 +141,6 @@ def handle_method(data: Any, method: str, its: int):
             raise ValueError(f"Unknown method: {method_name}")
 
 
-def p2_data_img(data: Any):
-    """
-    Converting generic events to images for the CNN.
-    """
-    files = data["files"]
-    Nfiles = len(files)
-    event_list = []
-    target_list = []
-    count_list = []
-    mapping_list = []
-    dlabel_list = []
-    energy_list = []
-    dataloader = BNN.Data()
-    for file in files:
-        tfile = ROOT.TFile(file["path"], "READ")
-        ttree = tfile.Get("EventsTree")
-        data = dataloader.to_training_tensor(ttree)
-        event_list.append(data["event"])
-        target_list.append(data["target"])
-        count_list.append(data["count"])
-        mapping_list.append(data["mapping"])
-        dlabel_list.append(data["dlabels"])
-        for e in data["energy"]:
-            energy_list.append(e)
-
-    events = torch.cat(event_list)
-    targets = torch.cat(target_list)
-    counts = torch.cat(count_list)
-    mapping = torch.cat(mapping_list)
-    dlabels = torch.cat(dlabel_list)
-
-    return events, targets, counts, mapping, dlabels, energy_list
-
 
 # TO-DO: Move to separate file
 # ma_opt.py e.g.
@@ -185,7 +152,9 @@ def ma_optimize(data: Any, method: Any, its: int):
     print(f"Optimizing modified aggregation for {its} iterations.")
 
     ma_cluster = ModifiedAggregationClusterer()
-    adj, values, labels, _ = ma_cluster.data(data)
+    d = ma_cluster.data(data)
+    values = d["values"]
+    labels = d["labels"]
     values, labels = shuffle(values, labels)
     clusters = np.zeros_like(labels)
 
@@ -196,7 +165,7 @@ def ma_optimize(data: Any, method: Any, its: int):
 
         # Metric should be an input parameter defined in yaml
         score = np.zeros(len(values), dtype=np.float32)
-        tags = ma_cluster.cluster(pars["seed"], pars["agg"], adj, values)
+        tags = ma_cluster.cluster(pars["seed"], pars["agg"], d["adj"], values)
         score = compute_score(tags, labels, values, "efficiency")
         return (score.mean()-1)**2
 
@@ -217,7 +186,15 @@ def cnn_optimize(data: Any, method: Any, its: int):
 
     unet_cluster = UNetClusterer()
 
-    events, targets, counts, mapping, dlabels, values, energy, adj = unet_cluster.data(data)
+    d = unet_cluster.data(data)
+    events = d["events"]
+    targets = d["targets"]
+    counts = d["counts"]
+    mapping = d["mapping"]
+    dlabels = d["labels"]
+    values = d["values"]
+    energy = d["energy"]
+
     event_train, event_eval, \
     target_train, target_eval, \
     count_train, count_eval, \
@@ -250,7 +227,7 @@ def cnn_optimize(data: Any, method: Any, its: int):
 
 
         print("Clustering...")
-        tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], adj, dlabels_eval, mapping_eval)
+        tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], d["adj"], dlabels_eval, mapping_eval)
         labels_sq = dlabels_eval.squeeze().detach().numpy()
         values_sq = values_eval.squeeze().detach().numpy()
         print("Computing score...")

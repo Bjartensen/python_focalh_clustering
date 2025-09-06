@@ -146,7 +146,8 @@ class Data(): # or DataLoader, DataTransformer?
             l_npy.append(d["y"])
             l_npval.append(d["values"])
             l_npdlab.append(d["labels"])
-            l_com.append(d["coms"])
+            for c in d["coms"]:
+                l_com.append(c)
             for e in d["energy"]:
                 l_energy.append(e)
 
@@ -169,7 +170,7 @@ class Data(): # or DataLoader, DataTransformer?
     """
     Tensor and image transformations
     """
-    def to_training_tensor(self, ttree):
+    def to_training_tensor(self, ttree, xdim=21, ydim=21, gauss_size=3):
         """
         Convert to images, gaussian class activation maps and other stuff
         """
@@ -184,19 +185,19 @@ class Data(): # or DataLoader, DataTransformer?
 
         for i in range(entries):
             try:
-                ret, coms, dlabels, values, mapping, energy = self.ttree_to_tensor(ttree, i)
-                target = self.gaussian_class_activation_map(coms, 21, 21, 3)
-                count = torch.tensor(len(coms), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                d = self.ttree_to_tensor(ttree, i)
+                target = self.gaussian_class_activation_map(d["coms"], xdim, ydim, gauss_size)
+                count = torch.tensor(len(d["coms"]), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
             except RuntimeError:
                 # TO-DO: Fix the edge cases of gaussians
                 continue
-            count_list.append(count)
-            image_list.append(ret)
+            image_list.append(d["event"])
             target_list.append(target)
-            mapping_list.append(torch.from_numpy(mapping).unsqueeze(0).unsqueeze(0))
-            dlabels_list.append(torch.from_numpy(dlabels).unsqueeze(0).unsqueeze(0))
-            values_list.append(torch.from_numpy(values).unsqueeze(0).unsqueeze(0))
-            energy_list.append(energy)
+            count_list.append(count)
+            mapping_list.append(torch.from_numpy(d["mapping"]).unsqueeze(0).unsqueeze(0))
+            dlabels_list.append(torch.from_numpy(d["labels"]).unsqueeze(0).unsqueeze(0))
+            values_list.append(torch.from_numpy(d["values"]).unsqueeze(0).unsqueeze(0))
+            energy_list.append(d["energy"])
 
         image_tensor = torch.cat(image_list, dim=0)
         target_tensor = torch.cat(target_list, dim=0)
@@ -235,7 +236,15 @@ class Data(): # or DataLoader, DataTransformer?
         npdlabels = self.get_major_labels(nplabels, npfracs, len(coms))
         event_tensor, mapping = self.generic_to_tensor(npx,npy,npval)
 
-        return event_tensor, coms, npdlabels, npval, mapping, npenergy
+        d = dict()
+        d["event"] = event_tensor
+        d["coms"] = coms
+        d["labels"] = npdlabels
+        d["values"] = npval
+        d["mapping"] = mapping
+        d["energy"] = npenergy
+
+        return d
 
 
     def gaussian_class_activation_map(self, points, img_x_dim, img_y_dim, kernel_size=3):

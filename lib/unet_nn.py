@@ -55,34 +55,57 @@ class UNet(nn.Module):
         Forward function propagating an input through the network.
         """
         # Encoder path
+        print(x.shape)
         xe11 = relu(self.e11(x))
+        print(xe11.shape)
         xe12 = relu(self.e12(xe11))
+        print(xe12.shape)
         xp1 = self.pool1(xe12)
+        print(xp1.shape)
 
         xe21 = relu(self.e21(xp1))
+        print(xe21.shape)
         xe22 = relu(self.e22(xe21))
+        print(xe22.shape)
         xp2 = self.pool2(xe22)
+        print(xp2.shape)
 
 
         # Pipe
         pipe1 = relu(self.e31(xp2))
+        print(pipe1.shape)
         pipe2 = relu(self.e32(pipe1))
+        print(pipe2.shape)
 
 
         # Gaussian decoder path
         xu1 = self.upconv1(pipe2)
+        print(xu1.shape)
+
         xu11 = torch.cat([xu1, xe22], dim=1)
+        print(xu11.shape)
         xd11 = relu(self.d11(xu11))
+        print(xd11.shape)
         xd12 = relu(self.d12(xd11))
+        print(xd12.shape)
 
         xu2 = self.upconv2(xd12)
+        print(xu2.shape)
         # TO-DO resize should not be hardcoded
         xu2 = interpolate(xu2, size=(21, 21), mode='bilinear', align_corners=True) # Resize
+        print(xu2.shape)
         xu22 = torch.cat([xu2, xe12], dim=1)
+        print(xu22.shape)
         xd21 = relu(self.d21(xu22))
+        print(xd21.shape)
         xd22 = relu(self.d22(xd21))
+        print(xd22.shape)
 
         out = self.outconv(xd22) # Output
+        print(out.shape)
+
+        print("DONE COMPUTING")
+
 
 
         # Counting
