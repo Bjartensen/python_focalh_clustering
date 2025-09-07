@@ -30,6 +30,7 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
+import time
 
 DATA = "analysis/data.yaml"
 METHODS = "analysis/methods.yaml"
@@ -58,18 +59,18 @@ def load_transformation():
 # https://github.com/optuna/optuna/issues/1001#issuecomment-596478792
 
 
-def run(data, method, its):
+def run(data, method, its, timestamps):
     analysis_type = data["name"]
     print(f"Running analysis {analysis_type}")
     print(f"\tOn {method['name']}")
     print(f"\tFor {its} iterations.")
 
-    handle_method(data, method, its)
+    handle_method(data, method, its, timestamps)
 
     # Maybe it should be data.yaml and methods.yaml
 
 
-def save_study(study, data, its, method, model=None):
+def save_study(study, data, its, method, timestamps, model=None):
     bundle = dict()
     bundle["method"] = method
     bundle["study"] = study
@@ -90,11 +91,15 @@ def save_study(study, data, its, method, model=None):
         torch.save(model, dir+filename_model)
 
     # Save study and extra parameters
+
+    timestamps["t_optimize_end"] = time.time()
+    bundle["timestamps"] = timestamps
+
     with open(dir+filename, "wb") as f:
         pickle.dump(bundle, f)
 
 
-def handle_method(data: Any, method: str, its: int):
+def handle_method(data: Any, method: str, its: int, timestamps):
     """
     Function to handle type of method.
     I decide here what the interface should be for all the methods.
@@ -104,37 +109,37 @@ def handle_method(data: Any, method: str, its: int):
     match method_name.lower():
         case "ma":
             print(f"Optimizing {method_name}")
-            study = ma_optimize(data, method, its)
+            study = ma_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
-            save_study(study, data, its, method)
+            save_study(study, data, its, method, timestamps)
             print("Saved.")
 
         case "cnn":
             print(f"Optimizing {method_name}")
-            study, model = cnn_optimize(data, method, its)
+            study, model = cnn_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
-            save_study(study, data, its, method, model)
+            save_study(study, data, its, method, timestamps, model)
             print("Saved.")
 
         case "dbscan":
             print(f"Optimizing {method_name}")
-            study = sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
-            save_study(study, data, its, method)
+            save_study(study, data, its, method, timestamps)
             print("Saved.")
 
         case "hdbscan":
             print(f"Optimizing {method_name}")
-            study = sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
-            save_study(study, data, its, method)
+            save_study(study, data, its, method, timestamps)
             print("Saved.")
 
         case "baygauss":
             print(f"Optimizing {method_name}")
-            study = sklearn_optimize(data, method, its)
+            study = sklearn_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
-            save_study(study, data, its, method)
+            save_study(study, data, its, method, timestamps)
             print("Saved.")
 
         case _:
@@ -145,7 +150,7 @@ def handle_method(data: Any, method: str, its: int):
 # TO-DO: Move to separate file
 # ma_opt.py e.g.
 # then ma_exec for using a trained/optimized model?
-def ma_optimize(data: Any, method: Any, its: int):
+def ma_optimize(data: Any, method: Any, its: int, timestamps):
     """
     Optimizing modified aggregation.
     """
@@ -156,6 +161,9 @@ def ma_optimize(data: Any, method: Any, its: int):
     values = d["values"]
     labels = d["labels"]
     values, labels = shuffle(values, labels)
+
+    timestamps["t_data_loaded"] = time.time()
+
     clusters = np.zeros_like(labels)
 
     def objective(trial):
@@ -171,11 +179,14 @@ def ma_optimize(data: Any, method: Any, its: int):
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
+
+    timestamps["t_study_finished"] = time.time()
+
     return study
 
 
 
-def cnn_optimize(data: Any, method: Any, its: int):
+def cnn_optimize(data: Any, method: Any, its: int, timestamps):
     """
     Optimizing CNN.
     """
@@ -187,6 +198,9 @@ def cnn_optimize(data: Any, method: Any, its: int):
     unet_cluster = UNetClusterer()
 
     d = unet_cluster.data(data)
+
+    timestamps["t_data_loaded"] = time.time()
+
     events = d["events"]
     targets = d["targets"]
     counts = d["counts"]
@@ -239,6 +253,8 @@ def cnn_optimize(data: Any, method: Any, its: int):
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
 
+    timestamps["t_study_finished"] = time.time()
+
     total_memory = sum([sys.getsizeof(model) + get_model_memory_usage(model) for model in models])
     print(f"Total memory usage: {total_memory / (1024 ** 2):.2f} MB for {len(models)} models")
 
@@ -276,7 +292,7 @@ def unpack_parameters(par_keys, trial, config, prefix=""):
 
 
 
-def sklearn_optimize(data, method, its):
+def sklearn_optimize(data, method, its, timestamps):
     """
     I probably still want them separate, but they will be almost identical.
     This function can be used to direct the flow.
@@ -286,6 +302,8 @@ def sklearn_optimize(data, method, its):
 
     sk_cluster = SklearnClusterer()
     d = sk_cluster.data(data)
+
+    timestamps["t_data_loaded"] = time.time()
 
     def objective(trial):
         trans_pars = dict()
@@ -311,7 +329,6 @@ def sklearn_optimize(data, method, its):
         score = compute_score(tags, d["labels"], d["values"], score_type)
 
 
-        """
         test_idx = 55
         fig,ax=plt.subplots(nrows=1, ncols=2, figsize=(10,5))
         fig.suptitle(f"Score [{score_type}]: {score[test_idx]:.3f}, mean: {score.mean():.3f} (1 is best)")
@@ -331,12 +348,13 @@ def sklearn_optimize(data, method, its):
 
         fig.savefig(f"dump/trans_test_{trial.number}.png", bbox_inches="tight")
         plt.clf()
-        """
 
         return (score.mean() - 1)**2
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
+
+    timestamps["t_study_finished"] = time.time()
 
     return study
 
@@ -353,7 +371,12 @@ def main():
     data = load_data(args.data)
     method = load_method(args.method)
 
-    run(data, method, args.its)
+
+    timestamps = {
+        "t_optimize_start": time.time()
+    }
+
+    run(data, method, args.its, timestamps)
 
 
 if __name__ == "__main__":

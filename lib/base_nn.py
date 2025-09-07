@@ -182,6 +182,7 @@ class Data(): # or DataLoader, DataTransformer?
         dlabels_list = []
         values_list = []
         energy_list = []
+        coms_list = []
 
         for i in range(entries):
             try:
@@ -198,6 +199,7 @@ class Data(): # or DataLoader, DataTransformer?
             dlabels_list.append(torch.from_numpy(d["labels"]).unsqueeze(0).unsqueeze(0))
             values_list.append(torch.from_numpy(d["values"]).unsqueeze(0).unsqueeze(0))
             energy_list.append(d["energy"])
+            coms_list.append(d["coms"])
 
         image_tensor = torch.cat(image_list, dim=0)
         target_tensor = torch.cat(target_list, dim=0)
@@ -214,6 +216,7 @@ class Data(): # or DataLoader, DataTransformer?
             "dlabels": dlabels_tensor,
             "values": values_tensor,
             "energy": energy_list,
+            "coms": coms_list,
             "metadata": {"version": 1},
         }
 

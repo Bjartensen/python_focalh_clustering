@@ -88,12 +88,15 @@ def run(data: Any, study: Any):
     result["labels"] = labels
     result["values"] = values
     """
+    result["data"] = data
     result["efficiency"] = eff
     result["vmeasure"] = vmeas
     #result["vmeasure_weighted"] = vmeas_weighted
     result["coverage"] = coverage
     result["particles"] = particles
     result["avg_energy"] = avg_energy
+
+    study["eval"] = result
 
     print("Done.")
     print("Saving...")
@@ -104,7 +107,7 @@ def run(data: Any, study: Any):
     dir = EVALUATION_DIRECTORY
 
     with open(dir+filename, "wb") as f:
-        pickle.dump(result, f)
+        pickle.dump(study, f)
 
     print("Saved.")
 

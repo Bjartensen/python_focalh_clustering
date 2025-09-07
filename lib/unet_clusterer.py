@@ -3,6 +3,7 @@ from lib.modified_aggregation import ModifiedAggregation
 import lib.base_nn as BNN
 import lib.unet_nn as UNet
 import torch
+from torch.utils.data import DataLoader
 import numpy as np
 
 
@@ -23,6 +24,7 @@ class UNetClusterer:
         dlabel_list = []
         values_list = []
         energy_list = []
+        coms_list = []
         dataloader = BNN.Data()
         for file in files:
             tfile = ROOT.TFile(file["path"], "READ")
@@ -36,6 +38,8 @@ class UNetClusterer:
             values_list.append(data["values"])
             for e in data["energy"]:
                 energy_list.append(e)
+            for c in data["coms"]:
+                coms_list.append(c)
 
         events = torch.cat(event_list)
         targets = torch.cat(target_list)
@@ -52,6 +56,7 @@ class UNetClusterer:
         d["labels"] = dlabels
         d["values"] = values
         d["energy"] = energy_list
+        d["coms"] = coms_list
         adj = np.load("p2_image_adj_21x21.npy")
         d["adj"] = adj
 
@@ -67,19 +72,20 @@ class UNetClusterer:
 
 
     def cluster(self, events, unet_model, ma_seed, ma_agg, adj, labels, mapping):
-        print(f"UNET_CLUSTERER::u(x)...")
-        print(events.shape)
 
-        with torch.no_grad():
-            x = unet_model(events)
+        torch_dataloader = DataLoader(events, batch_size=1000, shuffle=False)
 
-        #x = unet_model(events)
-        print(f"UNET_CLUSTERER::x computed...")
+        outputs = []
+        for batch in torch_dataloader:
+            with torch.no_grad():
+                output = unet_model(batch)
+            outputs.append(output)
+        x = torch.cat(outputs, dim=0)
+
         dataloader = BNN.Data()
         Ncells = labels.shape[2]
         Nentries = len(x)
         tags = np.zeros(Nentries*Ncells, dtype=np.int32).reshape(Nentries,Ncells)
-        print(f"UNET_CLUSTERER::Starting clustering...")
         for i in range(Nentries):
             vals = x[i][0].flatten().detach().numpy()
             max_val = vals.max()
