@@ -6,6 +6,7 @@ Script that does:
 """
 
 import pickle
+import threading
 from datetime import datetime
 import sys
 import copy
@@ -59,13 +60,13 @@ def load_transformation():
 # https://github.com/optuna/optuna/issues/1001#issuecomment-596478792
 
 
-def run(data, method, its, timestamps):
+def run(data, method, its, timestamps, jobs):
     analysis_type = data["name"]
     print(f"Running analysis {analysis_type}")
     print(f"\tOn {method['name']}")
     print(f"\tFor {its} iterations.")
 
-    handle_method(data, method, its, timestamps)
+    handle_method(data, method, its, timestamps, jobs)
 
     # Maybe it should be data.yaml and methods.yaml
 
@@ -99,7 +100,7 @@ def save_study(study, data, its, method, timestamps, model=None):
         pickle.dump(bundle, f)
 
 
-def handle_method(data: Any, method: str, its: int, timestamps):
+def handle_method(data: Any, method: str, its: int, timestamps, jobs: int):
     """
     Function to handle type of method.
     I decide here what the interface should be for all the methods.
@@ -109,7 +110,7 @@ def handle_method(data: Any, method: str, its: int, timestamps):
     match method_name.lower():
         case "ma":
             print(f"Optimizing {method_name}")
-            study = ma_optimize(data, method, its, timestamps)
+            study = ma_optimize(data, method, its, timestamps, jobs)
             print(f"Study done. Best params: {study.best_params}")
             save_study(study, data, its, method, timestamps)
             print("Saved.")
@@ -150,7 +151,7 @@ def handle_method(data: Any, method: str, its: int, timestamps):
 # TO-DO: Move to separate file
 # ma_opt.py e.g.
 # then ma_exec for using a trained/optimized model?
-def ma_optimize(data: Any, method: Any, its: int, timestamps):
+def ma_optimize(data: Any, method: Any, its: int, timestamps, jobs: int):
     """
     Optimizing modified aggregation.
     """
@@ -178,7 +179,7 @@ def ma_optimize(data: Any, method: Any, its: int, timestamps):
         return (score.mean()-1)**2
 
     study = optuna.create_study()
-    study.optimize(objective, n_trials=its)
+    study.optimize(objective, n_trials=its, n_jobs=jobs)
 
     timestamps["t_study_finished"] = time.time()
 
@@ -364,19 +365,21 @@ def main():
     parser.add_argument("--data", type=str, required=True, help="Dataset (define in yaml)")
     parser.add_argument("--method", type=str, required=True, help="Clustering method")
     parser.add_argument("--its", type=int, required=True, help="Number of iterations")
+    parser.add_argument("--jobs", type=int, required=False, default=1, help="Number of iterations")
+
 
     # Should have: data, method, iterations
 
     args = parser.parse_args()
+
+    #print(f"--data: {args.data}, --method: {args.method}, --its: {args.its}, --jobs: {args.jobs}")
     data = load_data(args.data)
     method = load_method(args.method)
 
 
-    timestamps = {
-        "t_optimize_start": time.time()
-    }
+    timestamps = {"t_optimize_start": time.time()}
 
-    run(data, method, args.its, timestamps)
+    run(data, method, args.its, timestamps, args.jobs)
 
 
 if __name__ == "__main__":
