@@ -122,25 +122,19 @@ def handle_method(data: Any, study: Any):
         d["tags"] = cluster.cluster(pars["seed"], pars["agg"], d["adj"], d["values"])
         return d
     elif name == "cnn":
-        print(f"Loading pars...")
         pars = study["study"].best_params
         cluster = UNetClusterer()
         #events, targets, counts, mapping, labels, values, energy, adj = cluster.data(data)
-        print(f"Loading data...")
         d = cluster.data(data)
         p = Path(study["load_path"])
-        print(f"Loading model...")
         u = torch.load(str(p.parent)+"/"+study["model_file"], weights_only=False)
-        print(f"Clustering...")
         d["tags"] = cluster.cluster(d["events"], u, pars["seed"], pars["agg"], d["adj"], d["labels"], d["mapping"])
-        print(f"Clustering finished.")
-
 
         # Weird that they are even tensors...
         d["labels"] = d["labels"].squeeze().detach().numpy()
         d["values"] = d["values"].squeeze().detach().numpy()
         return d
-    elif name in ["hdbscan"]:
+    elif name in ["hdbscan", "dbscan"]:
         pars = study["study"].best_params
         trans_pars, method_pars = split_trans_method(pars)
         cluster = SklearnClusterer()

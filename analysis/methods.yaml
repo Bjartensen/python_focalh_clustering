@@ -43,9 +43,10 @@ kmeans:
   labels: True
   parametric: True
   parameters:
-    - name: n_components
+    - name: max_iter
       type: int
-      oracle: True
+      min: 300
+      max: 300
 dbscan:
   name: dbscan
   labels: True
@@ -53,8 +54,8 @@ dbscan:
   parameters:
     - name: eps
       type: float
-      min: 0.001
-      max: 100
+      min: 0.1
+      max: 1
 hdbscan:
   name: hdbscan
   labels: True
@@ -70,6 +71,23 @@ hdbscan:
       max: 200
     - name: allow_single_cluster
       type: bool
+optics:
+  name: optics
+  labels: True
+  parametric: False
+  parameters:
+    - name: min_samples
+      type: int
+      min: 1
+      max: 20
+    - name: xi
+      type: float
+      min: 0.1
+      max: 1
+    - name: min_cluster_size
+      type: int
+      min: 1
+      max: 20
 baygauss:
   name: baygauss
   labels: False

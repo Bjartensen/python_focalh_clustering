@@ -40,7 +40,11 @@ def efficiency(clusters, labels):
     """
     eff = float(-100)
     try:
-        eff = float(count(clusters)) / float(count(labels))
+        cnt_clusters = float(count(clusters))
+        if count(clusters) == 0:
+            return float(-100)
+        cnt_labels = float(count(clusters))
+        eff = cnt_clusters / cnt_labels
     except ZeroDivisionError:
         eff = -100
     return eff
@@ -114,6 +118,14 @@ def average_energy(energy):
     for i in range(len(energy)):
         en[i] = np.mean(energy[i])
     return en
+
+
+def confusion(tags, labels, values):
+    """
+    Compute the confusion (E_pred - E_true)
+    """
+    pass
+
 
 def compute_score(tags, labels, values, score):
     """

@@ -8,6 +8,7 @@ and also the data transforms. Everything will probably be moved here.
 from sklearn import cluster, mixture
 import lib.base_nn as BNN
 import numpy as np
+from lib.metrics import count_labels
 
 class SklearnClusterer:
     def __init__(self):
@@ -58,17 +59,22 @@ class SklearnClusterer:
         pass
 
 
-    def handle_method(self, method_name, pars):
+    def handle_method(self, method_name, pars, n_clusters=None):
         model = None
         match method_name:
+            # Non-parametric
             case "dbscan":
                 model = cluster.DBSCAN(**pars)
             case "hdbscan":
                 model = cluster.HDBSCAN(**pars)
+            case "optics":
+                model = cluster.OPTICS(**pars)
+
+            # Parametric
             case "baygauss":
-                model = mixture.BayesianGaussianMixture(**pars)
+                model = mixture.BayesianGaussianMixture(n_clusters, **pars)
             case "kmeans":
-                model = cluster.KMeans(**pars)
+                model = cluster.KMeans(n_clusters, **pars)
             case _:
                 raise ValueError(f"Unknown method: {method_name}")
         return model
@@ -96,20 +102,33 @@ class SklearnClusterer:
         for i in range(Nevents):
             X[i] = self.transformation(x[i], y[i], z[i], trans)
 
+
+        # if not parametric, define here
         model = self.handle_method(method["name"], method_pars)
 
+        # if method is parametric do oracle version
         for i in range(Nevents):
-            if method["labels"] == True:
-                model.fit(X[i])
-                Y[i] = model.labels_.astype(int)
-                Y[i] += 1 # Not clustered is 0 in my clustering methods
-                tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
-            else:
-                model.fit(X[i])
-                Y[i] = model.predict(X[i])
-                Y[i] += 1 # Not clustered is 0 in my clustering methods
-                tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+            # if parametric: Move into loop in case of parametric
+            # model = self.handle_method(method["name"], n_clusters, method_pars)
+            try:
 
+                if method["parametric"]:
+                    # use metrics.count()?
+                    model = self.handle_method(method["name"], method_pars, count_labels(data["labels"][i]))
+                model.fit(X[i])
+
+                # Slightly different interface
+                if method["labels"] == True:
+                    Y[i] = model.labels_.astype(int)
+                else:
+                    Y[i] = model.predict(X[i])
+
+                Y[i] += 1 # Not clustered is 0 in my clustering methods
+                tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+            except ValueError:
+                Y[i] = np.zeros(len(X[i]))
+                tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
+                print(f"ValueError")
 
         return tags
 

@@ -136,7 +136,21 @@ def handle_method(data: Any, method: str, its: int, timestamps, jobs: int):
             save_study(study, data, its, method, timestamps)
             print("Saved.")
 
+        case "optics":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
         case "baygauss":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
+        case "kmeans":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its, timestamps)
             print(f"Study done. Best params: {study.best_params}")
@@ -165,9 +179,8 @@ def ma_optimize(data: Any, method: Any, its: int, timestamps, jobs: int):
 
     timestamps["t_data_loaded"] = time.time()
 
-    clusters = np.zeros_like(labels)
-
     def objective(trial):
+
         pars = dict()
         unpack_parameters(pars, trial, method) # Also does trial.suggest
         if pars["agg"]>=pars["seed"]: return float("inf")
@@ -300,6 +313,8 @@ def sklearn_optimize(data, method, its, timestamps):
     """
     trans = load_transformation()["basic"]
     dataloader = BNN.Data()
+    
+    print(method)
 
     sk_cluster = SklearnClusterer()
     d = sk_cluster.data(data)
@@ -326,7 +341,7 @@ def sklearn_optimize(data, method, its, timestamps):
 
         tags = sk_cluster.cluster(d, trans_pars, method, method_pars)
 
-        score_type = "efficiency"
+        score_type = "vmeasure"
         score = compute_score(tags, d["labels"], d["values"], score_type)
 
 

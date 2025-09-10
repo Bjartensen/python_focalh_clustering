@@ -4,9 +4,9 @@ basic:
     parameters:
       - name: factor
         type: int
-        constant: 50
-        min: 50
-        max: 50
+        constant: 10
+        min: 10
+        max: 10
       - name: width
         type: float
         constant: 1.4525251
