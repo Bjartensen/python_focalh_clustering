@@ -49,6 +49,42 @@ def efficiency(clusters, labels):
         eff = -100
     return eff
 
+
+def resolved():
+    """
+    For some clustered event, compute whether they are resolved
+    by looking at the energy confusion and energy resolution.
+    Binary classification. Tolerance interval. Threshold-Based Classification.
+    This metric "scales" with energy.
+
+
+    I need some strategy of matching elements of two lists:
+        scipy.optimize.linear_sum_assignment ?
+    Based on the best matches, compute confusion energy
+        absolute difference
+    Return for each whether they are resolved or not.
+    Maybe for each non-matched (more/less clusters than showers)
+    return a non-resolved.
+
+    Count total "objects" and return resolved and total
+
+
+    """
+    pass
+
+def reconstruct_energy(a,b,adc):
+    """
+    Reconstruct the energy based on the linearity
+    """
+    return (adc-b)/a
+
+def energy_resolution(a,b,c,E):
+    """
+    Compute the energy resolution for a particular energy
+    """
+    sigma_E = np.sqrt((a**2)/E + (b**2)/(E**2) + c**2)
+    return sigma_E * E
+
 # Retire
 def clusters_sum(clusters, values):
     mask = clusters != 0

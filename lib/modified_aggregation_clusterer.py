@@ -52,6 +52,7 @@ class ModifiedAggregationClusterer:
         can be produced once and ran with different parameters.
         """
         ma = ModifiedAggregation(seed,agg)
+        # iadj??
         tags = np.zeros_like(values, dtype=np.int32)
         for i in range(len(values)):
             tags[i],_ = ma.run(A, values[i])
