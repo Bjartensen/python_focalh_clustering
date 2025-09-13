@@ -24,3 +24,20 @@ my_bsc:
     linearity:
       a: 484.4
       b: 12160
+test:
+  mc:
+    linearity:
+      a: 298.9
+      b: 7570
+    energy_resolution:
+      a: 0.97
+      b: 0.00
+      c: 0.08
+  tb:
+    linearity:
+      a: 484.4
+      b: 12160
+    energy_resolution:
+      a: 1.28
+      b: 0.00
+      c: 0.09

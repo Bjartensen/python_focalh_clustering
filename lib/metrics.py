@@ -50,27 +50,52 @@ def efficiency(clusters, labels):
     return eff
 
 
-def resolved():
+def separation_efficiency(lineariy_yaml, energy_resolution_yaml):
+    """
+    Compute separation efficiency (resolved showers) from
+    linearity and energy resolution fits.
+
+    """
+    pass
+
+def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     """
     For some clustered event, compute whether they are resolved
     by looking at the energy confusion and energy resolution.
     Binary classification. Tolerance interval. Threshold-Based Classification.
     This metric "scales" with energy.
-
-
-    I need some strategy of matching elements of two lists:
-        scipy.optimize.linear_sum_assignment ?
-    Based on the best matches, compute confusion energy
-        absolute difference
-    Return for each whether they are resolved or not.
-    Maybe for each non-matched (more/less clusters than showers)
-    return a non-resolved.
-
-    Count total "objects" and return resolved and total
-
-
     """
-    pass
+
+    sigma_E = energy_resolution(E, eres_a, eres_b, eres_c)
+    E_true = reconstruct_energy(compute_sums(labels,values), lin_a, lin_b)
+    E_pred = reconstruct_energy(compute_sums(tags,values), lin_a, lin_b)
+    rows,cols = match_labels(E_true, E_pred)
+
+    resolved = 0
+    max_length = max(len(E_pred), len(E_true))
+
+    # TO-DO: with arrays
+    for i in range(len(rows)):
+        E_confusion = abs(E_true[rows[i]] - E_pred[cols[i]])
+        if E_confusion < sigma_E[i]:
+            resolved += 1
+    return resolved, max_length
+
+
+def reconstruct_energy(adc,a,b):
+    """
+    Reconstruct energy based on linerity fit.
+    """
+    return (adc-b)/a
+
+
+def energy_resolution(E,a,b,c):
+    """
+    Compute energy resolution based on energy and energy resolution fit.
+    """
+    sigma_E = np.sqrt((a**2)/E + (b**2)/(E**2) + c**2)
+    return sigma_E * E
+
 
 def reconstruct_energy(a,b,adc):
     """
