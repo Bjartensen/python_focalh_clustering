@@ -42,6 +42,23 @@ class ModifiedAggregationClusterer:
         """
         pass
 
+    def cluster_debug(self, tfile, ttree, entry, method, params):
+        """
+        Cluster a single event and add necessary debug information.
+        """
+        dataloader = BNN.Data()
+        d = dataloader.generic_event(tfile, ttree, entry)
+        adj = np.load("p2_adj.npy")
+        iadj = np.load("p2_sim_adj_map2.npy")
+
+        ma = ModifiedAggregation(params["seed"], params["agg"])
+        tags,_ = ma.run(adj, d["values"][iadj])
+
+        d["tags"] = tags
+        d["values"] = d["values"][iadj]
+
+        return d
+
 
     def cluster(self, seed, agg, A, values):
         """

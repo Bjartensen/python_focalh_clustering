@@ -90,7 +90,7 @@ class Data(): # or DataLoader, DataTransformer?
         # Hardcoded for prototype 2 (and CAEN/focalsim for saturation)
         # Should be yaml (lol)
         FOCAL2_CELLS = 249
-        FOCAL2_SAT = 4096
+        FOCAL2_SAT = 4095
 
         npx = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
         npy = np.zeros(Nentries*FOCAL2_CELLS, dtype=np.float32).reshape(Nentries, FOCAL2_CELLS)
@@ -167,6 +167,25 @@ class Data(): # or DataLoader, DataTransformer?
         return d
 
 
+    def generic_event(self, tfile, ttree, entry, saturation=4095):
+        tfile = ROOT.TFile(tfile, "READ")
+        ttree = tfile.Get("EventsTree")
+
+        ttree.GetEntry(entry)
+        d = dict()
+        d["x"] = np.array(ttree.x, dtype=np.float32)
+        d["y"] = np.array(ttree.y, dtype=np.float32)
+        d["values"] = np.array(ttree.value, dtype=np.float32)
+        d["energy"] = np.array(ttree.energies, dtype=np.float32)
+        l = np.array(ttree.labels)
+        f = np.array(ttree.fractions)
+        d["coms"] = self.center_of_masses(d["x"], d["x"], d["values"], l, f, 0.75)
+        d["labels"] = self.get_major_labels(l,f,len(d["energy"]))
+        d["values"] = d["values"].clip(max=saturation)
+        tfile.Close()
+
+        return d
+
     """
     Tensor and image transformations
     """
@@ -222,7 +241,7 @@ class Data(): # or DataLoader, DataTransformer?
 
         return data
 
-    def ttree_to_tensor(self, ttree, event, print_heatmap=False):
+    def ttree_to_tensor(self, ttree, event, saturation=4095):
         """
         Read an event of generic format and transform into image tensor.
         """
@@ -234,16 +253,17 @@ class Data(): # or DataLoader, DataTransformer?
         npfracs = np.array(ttree.fractions, dtype=np.float32)
         nplabels = np.array(ttree.labels, dtype=np.int32)
         npenergy = np.array(ttree.energies, dtype=np.float32)
-
         coms = self.center_of_masses(npx, npy, npval, nplabels, npfracs, 0.75)
         npdlabels = self.get_major_labels(nplabels, npfracs, len(coms))
+
+        npval = npval.clip(max=saturation)
         event_tensor, mapping = self.generic_to_tensor(npx,npy,npval)
 
         d = dict()
         d["event"] = event_tensor
         d["coms"] = coms
         d["labels"] = npdlabels
-        d["values"] = npval
+        d["values"] = npval # saturation?
         d["mapping"] = mapping
         d["energy"] = npenergy
 
@@ -313,7 +333,7 @@ class Data(): # or DataLoader, DataTransformer?
 
         # This should be set somewhere else
         MIN = 0
-        MAX = 4095 # Or 4096??
+        MAX = 4095
         # Cutting saturation in original data
         saturated_orig = val >= MAX
         val[saturated_orig] = MAX
@@ -392,7 +412,7 @@ class Data(): # or DataLoader, DataTransformer?
         mapped to more than one then choose the highest intensity
         pixel.
         """
-        lowd_l = np.zeros(dim)
+        lowd_l = np.zeros(dim, dtype=np.int32)
         for i in range(dim):
             mask = (mapping == i)
             if np.any(mask):

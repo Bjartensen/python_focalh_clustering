@@ -5,6 +5,7 @@ import lib.unet_nn as UNet
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
+from pathlib import Path
 
 
 class UNetClusterer:
@@ -70,6 +71,33 @@ class UNetClusterer:
         """
         pass
 
+    def cluster_debug(self, tfilename, ttree, entry, study, params):
+        tfile = ROOT.TFile(tfilename, "READ")
+        ttree = tfile.Get("EventsTree")
+        dataloader = BNN.Data()
+        d = dataloader.ttree_to_tensor(ttree, entry)
+        iadj = np.load("p2_sim_adj_map2.npy")
+        adj = np.load("p2_image_adj_21x21.npy")
+
+        p = Path(study["load_path"])
+        u = torch.load(str(p.parent)+"/"+study["model_file"], weights_only=False)
+
+        output = u(d["event"])
+        d["output"] = output
+
+        Ncells = d["labels"].shape[0]
+
+        vals = output.flatten().detach().numpy()
+        max_val = vals.max()
+        seed_rel = max_val*study["study"].best_params["seed"]
+        agg_rel = max_val*study["study"].best_params["agg"]
+        ma = ModifiedAggregation(seed=seed_rel, agg=agg_rel)
+        clusters,_ = ma.run(adj, vals)
+        lab = dataloader.invert_labels(clusters, d["mapping"], vals, Ncells)
+        d["tags"] = lab
+        d["values"] = d["values"][iadj]
+
+        return d
 
     def cluster(self, events, unet_model, ma_seed, ma_agg, adj, labels, mapping):
 

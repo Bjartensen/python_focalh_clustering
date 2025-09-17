@@ -43,10 +43,58 @@ kmeans:
   labels: True
   parametric: True
   parameters:
+    - name: init
+      type: string
+      list:
+      - "k-means++"
+      - "random"
+    - name: n_init
+      type: int
+      min: 1
+      max: 100
     - name: max_iter
       type: int
-      min: 300
-      max: 300
+      min: 1
+      max: 1000
+    - name: tol
+      type: float
+      min: 0.0000001
+      max: 1
+gauss:
+  name: gauss
+  labels: False
+  parametric: True
+  parameters:
+    - name: covariance_type
+      type: string
+      list:
+      - "diag"
+      - "full"
+    #    - name: tol
+    #      type: float
+    #      min: 0.0001
+    #      max: 0.1
+    - name: reg_covar
+      type: float
+      min: 0.0000001
+      max: 0.1
+    #    - name: max_iter
+    #      type: int
+    #      min: 1
+    #      max: 1000
+    #    - name: n_init
+    #      type: int
+    #      min: 1
+    #      max: 100
+    - name: init_params
+      type: string
+      list:
+      - "kmeans"
+      - "k-means++"
+      - "random"
+      - "random_from_data"
+    - name: warm_start
+      type: bool
 dbscan:
   name: dbscan
   labels: True

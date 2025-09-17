@@ -9,14 +9,12 @@ from sklearn import cluster, mixture
 import lib.base_nn as BNN
 import numpy as np
 from lib.metrics import count_labels
+import lib.misc_util as util
 
 class SklearnClusterer:
     def __init__(self):
         # Reference 
         pass
-
-
-
 
     def data(self, config):
         """
@@ -75,9 +73,46 @@ class SklearnClusterer:
                 model = mixture.BayesianGaussianMixture(n_clusters, **pars)
             case "kmeans":
                 model = cluster.KMeans(n_clusters, **pars)
+            case "gauss":
+                model = mixture.GaussianMixture(n_clusters, **pars)
             case _:
                 raise ValueError(f"Unknown method: {method_name}")
         return model
+
+
+    def cluster_debug(self, tfile, ttree, entry, method, params):
+        """
+        Cluster a single event and add necessary debug information.
+        """
+
+        # Read study, use code from evaluate.py
+
+        dataloader = BNN.Data()
+        d = dataloader.generic_event(tfile, ttree, entry)
+        iadj = np.load("p2_sim_adj_map2.npy")
+
+        trans_pars, method_pars = util.split_trans_method(params)
+
+        X = self.transformation(d["x"], d["y"], d["values"], trans_pars)
+
+        if method["parametric"]:
+            model = self.handle_method(method["name"], method_pars, count_labels(d["labels"]))
+        else:
+            model = self.handle_method(method["name"], method_pars)
+        model.fit(X)
+        if method["labels"] == True:
+            Y = model.labels_.astype(int)
+        else:
+            Y = model.predict(X)
+        Y += 1 # Not clustered is 0 in my clustering methods
+        tags = dataloader.kdtree_map(X, np.column_stack([d["x"], d["y"]]), Y)
+        
+        d["X"] = X
+        d["Y"] = Y
+        d["tags"] = tags[iadj]
+        d["values"] = d["values"][iadj]
+
+        return d
 
     #def cluster(self, seed, agg, A, values):
     # Just pass in a named dictionary
@@ -125,7 +160,7 @@ class SklearnClusterer:
 
                 Y[i] += 1 # Not clustered is 0 in my clustering methods
                 tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
-            except ValueError:
+            except ValueError: # add RuntimeWarning
                 Y[i] = np.zeros(len(X[i]))
                 tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
                 print(f"ValueError")

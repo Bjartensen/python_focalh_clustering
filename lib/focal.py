@@ -114,8 +114,30 @@ class FocalH:
             
         return (npx, npy, npvals, npfracs, nplabels, nplabelidx, npclusters, npclusteridx)
 
+    def heatmap_mono(self, values, ax=None, color="gray", saturation=4095):
+        """
+        Heatmap with no color coding.
+        """
+        if ax is None:
+            fig, ax = plt.subplots()
 
-    def heatmap(self, values, labels, ax=None, saturation=4096):
+        # Normalize the values to the range [0, 1] for the colormap
+        norm = Normalize(vmin=0, vmax=saturation)
+
+        # Use a grayscale colormap (e.g., 'gray')
+        c = plt.colormaps[color](norm(values))
+
+        # Create patches and set their face color
+        patches = PatchCollection(self.polygons, alpha=1)
+        patches.set_facecolor(c)
+        patches.set_clim(0, saturation)
+
+        ax.add_collection(patches)
+        ax.set_xlim(-self.detector_width/2, self.detector_width/2)
+        ax.set_ylim(-self.detector_height/2, self.detector_height/2)
+        ax.set_aspect("equal")
+
+    def heatmap(self, values, labels, ax=None, saturation=4095):
         """
         Generic heatmap created from values and labels.
         Assumes the caller knows the order of cells.
@@ -155,7 +177,7 @@ class FocalH:
         NCollections = len(set(clusters))
 #        grouped = np.zeros(NCollections * len(values)).reshape(NCollections, -1)
         grouped_c = np.zeros(len(values) * 4).reshape(len(values), 4)
-        norm = Normalize(vmin=0, vmax=4096)
+        norm = Normalize(vmin=0, vmax=4095)
         if colors == "":
             colors = (['Greens', 'Reds', 'Blues', 'Oranges',
                     'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
@@ -169,7 +191,7 @@ class FocalH:
                 grouped_c[self.search(x[icell], y[icell])] = plt.colormaps[colors[cl-1]](norm(values[icell]))
 
         patches = PatchCollection(self.polygons, alpha=1)
-        patches.set_clim(0, 4096)
+        patches.set_clim(0, 4095)
         patches.set_facecolor(grouped_c)
                 
         ax.add_collection(patches)
@@ -195,7 +217,7 @@ class FocalH:
         grouped = np.zeros(NCollections * len(values)).reshape(NCollections, -1) # needed?
         grouped_c = np.zeros(len(values) * 4).reshape(len(values), 4) # 4 for rgb
 
-        norm = Normalize(vmin=0, vmax=4096)
+        norm = Normalize(vmin=0, vmax=4095)
 
         if colors == "":
             colors = (['Greens', 'Reds', 'Blues', 'Oranges',
@@ -222,7 +244,7 @@ class FocalH:
             grouped_c[self.search(x[icell], y[icell])] = temp_color
 
         patches = PatchCollection(self.polygons, alpha=1)
-        patches.set_clim(0, 4096)
+        patches.set_clim(0, 4095)
         patches.set_facecolor(grouped_c)
         ax.add_collection(patches)
         ax.set_xlim(-self.detector_width/2, self.detector_width/2)

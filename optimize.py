@@ -26,7 +26,7 @@ from lib.unet_clusterer import UNetClusterer
 from lib.sklearn_clusterer import SklearnClusterer
 from lib.train import Train
 from lib.focal import FocalH
-from lib import efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
+from lib import metrics# efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
 import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
@@ -150,6 +150,13 @@ def handle_method(data: Any, method: str, its: int, timestamps, jobs: int):
             save_study(study, data, its, method, timestamps)
             print("Saved.")
 
+        case "gauss":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
         case "kmeans":
             print(f"Optimizing {method_name}")
             study = sklearn_optimize(data, method, its, timestamps)
@@ -175,7 +182,7 @@ def ma_optimize(data: Any, method: Any, its: int, timestamps, jobs: int):
     d = ma_cluster.data(data)
     values = d["values"]
     labels = d["labels"]
-    values, labels = shuffle(values, labels)
+    #values, labels = shuffle(values, labels)
 
     timestamps["t_data_loaded"] = time.time()
 
@@ -188,7 +195,10 @@ def ma_optimize(data: Any, method: Any, its: int, timestamps, jobs: int):
         # Metric should be an input parameter defined in yaml
         score = np.zeros(len(values), dtype=np.float32)
         tags = ma_cluster.cluster(pars["seed"], pars["agg"], d["adj"], values)
-        score = compute_score(tags, labels, values, "efficiency")
+
+        #score = compute_score(tags, labels, values, "efficiency")
+        score = metrics.separation_efficiency_opt(tags, labels, values, d["energy"])
+
         return (score.mean()-1)**2
 
     study = optuna.create_study()
@@ -313,8 +323,6 @@ def sklearn_optimize(data, method, its, timestamps):
     """
     trans = load_transformation()["basic"]
     dataloader = BNN.Data()
-    
-    print(method)
 
     sk_cluster = SklearnClusterer()
     d = sk_cluster.data(data)
@@ -341,8 +349,9 @@ def sklearn_optimize(data, method, its, timestamps):
 
         tags = sk_cluster.cluster(d, trans_pars, method, method_pars)
 
-        score_type = "vmeasure"
-        score = compute_score(tags, d["labels"], d["values"], score_type)
+        score_type = "separation"
+        #score = compute_score(tags, d["labels"], d["values"], score_type)
+        score = metrics.separation_efficiency_opt(tags, d["labels"], d["values"], d["energy"])
 
 
         test_idx = 55

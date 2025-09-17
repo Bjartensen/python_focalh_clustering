@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.metrics import v_measure_score, silhouette_score
+import yaml
+from scipy.optimize import linear_sum_assignment
 
 
 
@@ -38,25 +40,55 @@ def efficiency(clusters, labels):
     """
     Compute the efficieny (clusters-per-particle)
     """
-    eff = float(-100)
+    eff = float(0)
     try:
         cnt_clusters = float(count(clusters))
-        if count(clusters) == 0:
-            return float(-100)
-        cnt_labels = float(count(clusters))
+        cnt_labels = float(count(labels))
         eff = cnt_clusters / cnt_labels
     except ZeroDivisionError:
-        eff = -100
+        eff = float(0)
     return eff
 
 
-def separation_efficiency(lineariy_yaml, energy_resolution_yaml):
+FITS = "analysis/fits.yaml"
+
+def separation_efficiency_opt(tags, labels, values, energies):
+    # This should do maybe just be np.repeat to get resolved/total
+    # 1/2 and 5/10 gives each 0.5 and 0.5, the average of which is 0.5
+    # but 6/11 is not 0.5
+
+
+    sep = separation_efficiency(tags, labels, values, energies, linearity_yaml="test", energy_resolution_yaml="test")
+    return sep[:,0] / sep[:,1]
+
+def separation_efficiency(tags, labels, values, energies, linearity_yaml="test", energy_resolution_yaml="test"):
     """
     Compute separation efficiency (resolved showers) from
     linearity and energy resolution fits.
 
     """
-    pass
+
+    def load_fit(fit, source, type):
+        with open(FITS, "r") as file:
+            config = yaml.safe_load(file)
+        return config[fit][source][type]
+
+    linearity = load_fit(linearity_yaml, "mc", "linearity")
+    lin_a = linearity["a"]
+    lin_b = linearity["b"]
+
+    energy_resolution = load_fit(energy_resolution_yaml, "mc", "energy_resolution")
+    eres_a = energy_resolution["a"]
+    eres_b = energy_resolution["b"]
+    eres_c = energy_resolution["c"]
+
+    Nevents = len(tags)
+
+    efficiency = np.zeros(Nevents*2).reshape(Nevents,2)
+    for i in range(Nevents):
+        efficiency[i] = resolved(tags[i], labels[i], values[i], energies[i], lin_a, lin_b, eres_a, eres_b, eres_c)
+
+    return efficiency
 
 def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     """
@@ -66,10 +98,16 @@ def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     This metric "scales" with energy.
     """
 
+    def match_labels(predicted_sum, true_sum):
+        cost_matrix = np.abs(np.subtract.outer(true_sum, predicted_sum))
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
+        return row_ind, col_ind
+
     sigma_E = energy_resolution(E, eres_a, eres_b, eres_c)
     E_true = reconstruct_energy(compute_sums(labels,values), lin_a, lin_b)
     E_pred = reconstruct_energy(compute_sums(tags,values), lin_a, lin_b)
-    rows,cols = match_labels(E_true, E_pred)
+    rows,cols = match_labels(E_pred, E_true)
+    #print(f"E: {E}, sigma_E: {sigma_E}, E_true: {E_true}, E_pred: {E_pred}")
 
     resolved = 0
     max_length = max(len(E_pred), len(E_true))
@@ -93,22 +131,9 @@ def energy_resolution(E,a,b,c):
     """
     Compute energy resolution based on energy and energy resolution fit.
     """
-    sigma_E = np.sqrt((a**2)/E + (b**2)/(E**2) + c**2)
+    sigma_E = np.sqrt( (a/np.sqrt(E))**2 + (b/E)**2 + c**2)
     return sigma_E * E
 
-
-def reconstruct_energy(a,b,adc):
-    """
-    Reconstruct the energy based on the linearity
-    """
-    return (adc-b)/a
-
-def energy_resolution(a,b,c,E):
-    """
-    Compute the energy resolution for a particular energy
-    """
-    sigma_E = np.sqrt((a**2)/E + (b**2)/(E**2) + c**2)
-    return sigma_E * E
 
 # Retire
 def clusters_sum(clusters, values):
@@ -123,6 +148,15 @@ def labels_sum(labels, values):
 def total(labels, values):
     mask = labels != 0
     return values[mask].sum().astype(float)
+
+def compute_sums(label, values):
+    sums = []
+    for l in set(label):
+        if l == 0:
+            continue
+        mask = label == l
+        sums.append(values[mask].sum())
+    return np.array(sums)
 
 def coverage(clusters, labels, values):
     """
