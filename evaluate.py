@@ -12,7 +12,7 @@ from lib.modified_aggregation_clusterer import ModifiedAggregationClusterer
 from lib.unet_clusterer import UNetClusterer
 from lib.sklearn_clusterer import SklearnClusterer
 from lib.focal import FocalH
-import lib.misc_util
+import lib.misc_util as util
 from lib import metrics #efficiency, coverage, vmeas, compute_score, average_energy,              count_clusters,count_labels
 import torch
 import torch.nn as nn
@@ -42,14 +42,14 @@ def run(data: Any, study: Any):
 
     # Compute different things
     # Efficiency
-    eff = metrics.compute_score(result["tags"], result["labels"], result["values"], "efficiency")
+    eff = metrics.compute_score(result, "efficiency")
     sep_eff = metrics.separation_efficiency(result["tags"], result["labels"], result["values"], result["energy"], linearity_yaml="test", energy_resolution_yaml="test")
-    vmeas = metrics.compute_score(result["tags"], result["labels"], result["values"], "vmeasure")
+    vmeas = metrics.compute_score(result, "vmeasure")
 
 
     #vmeas_weighted = compute_score(tags, labels, values, "vmeasure_weighted")
-    coverage = metrics.compute_score(result["tags"], result["labels"], result["values"], "coverage")
-    particles = metrics.compute_score(result["tags"], result["labels"], result["values"], "count_labels")
+    coverage = metrics.compute_score(result, "coverage")
+    particles = metrics.compute_score(result, "count_labels")
     avg_energy = metrics.average_energy(result["energy"])
 
     """
@@ -106,9 +106,9 @@ def handle_method(data: Any, study: Any):
         d["labels"] = d["labels"].squeeze().detach().numpy()
         d["values"] = d["values"].squeeze().detach().numpy()
         return d
-    elif name in ["hdbscan", "dbscan"]:
+    elif name in ["hdbscan", "dbscan", "kmeans", "gauss"]:
         pars = study["study"].best_params
-        trans_pars, method_pars = misc_util.split_trans_method(pars)
+        trans_pars, method_pars = util.split_trans_method(pars)
         cluster = SklearnClusterer()
         d = cluster.data(data)
         #tags = cluster.cluster(d, trans_pars, method, method_pars)
@@ -125,7 +125,7 @@ def main():
 
     args = parser.parse_args()
     data = load_data(args.data)
-    study = misc_util.open_bundle(args.study)
+    study = util.open_bundle(args.study)
 
     run(data, study)
 

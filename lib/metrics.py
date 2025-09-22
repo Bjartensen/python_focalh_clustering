@@ -56,10 +56,12 @@ def separation_efficiency_opt(tags, labels, values, energies):
     # This should do maybe just be np.repeat to get resolved/total
     # 1/2 and 5/10 gives each 0.5 and 0.5, the average of which is 0.5
     # but 6/11 is not 0.5
-
+    # Or rather just do the sum and not element wise
 
     sep = separation_efficiency(tags, labels, values, energies, linearity_yaml="test", energy_resolution_yaml="test")
-    return sep[:,0] / sep[:,1]
+
+    #return sep[:,0] / sep[:,1]
+    return sep[:,0].sum() / sep[:,1].sum()
 
 def separation_efficiency(tags, labels, values, energies, linearity_yaml="test", energy_resolution_yaml="test"):
     """
@@ -221,12 +223,28 @@ def confusion(tags, labels, values):
     """
     pass
 
+# Could add cross validation at some part of the metric calculation?
+def compute_score_mean(d, score):
+    if score in ["efficiency"
+                 , "coverage"
+                 , "average_intensity_ratio"
+                 , "vmeasure"
+                 , "vmeasure_weighted"
+                 , "count_labels"
+                 , "count_tags"]:
+        return compute_score(d, score).mean()
+    elif score == "separation":
+        return separation_efficiency_opt(d["tags"], d["labels"], d["values"], d["energy"])
 
-def compute_score(tags, labels, values, score):
+
+def compute_score(d, score):
     """
     Function to handle which score to compute.
     Could also be handled in part by yaml (lol).
     """
+    tags = d["tags"]
+    labels = d["labels"]
+    values = d["values"]
     scores = np.zeros(len(values), dtype=np.float32)
     if score == "efficiency":
         for i in range(len(scores)):

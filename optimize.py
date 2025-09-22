@@ -195,11 +195,12 @@ def ma_optimize(data: Any, method: Any, its: int, timestamps, jobs: int):
         # Metric should be an input parameter defined in yaml
         score = np.zeros(len(values), dtype=np.float32)
         tags = ma_cluster.cluster(pars["seed"], pars["agg"], d["adj"], values)
+        d["tags"] = tags
 
-        #score = compute_score(tags, labels, values, "efficiency")
-        score = metrics.separation_efficiency_opt(tags, labels, values, d["energy"])
+        score = metrics.compute_score_mean(d, "separation")
+        #score = metrics.separation_efficiency_opt(tags, labels, values, d["energy"])
 
-        return (score.mean()-1)**2
+        return (score-1)**2
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its, n_jobs=jobs)
@@ -263,15 +264,17 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
         trainer.run(pars["epochs"], event_train, target_train)
         models.append(copy.deepcopy(u))
 
-
-        print("Clustering...")
         tags = unet_cluster.cluster(event_eval, u, pars["seed"], pars["agg"], d["adj"], dlabels_eval, mapping_eval)
         labels_sq = dlabels_eval.squeeze().detach().numpy()
         values_sq = values_eval.squeeze().detach().numpy()
-        print("Computing score...")
-        score = compute_score(tags, labels_sq, values_sq, "efficiency")
 
-        return (score.mean()-1)**2
+        d["tags"] = tags
+        d["labels"] = labels
+        d["values"] = values
+
+        score = metrics.compute_score_mean(d, "efficiency")
+
+        return (score-1)**2
 
 
     study = optuna.create_study()
@@ -341,40 +344,16 @@ def sklearn_optimize(data, method, its, timestamps):
         """
         Cluster and evaluate
         """
-        # Before this you need to check if oracle
-        # use sk_cluster
-        # sk_cluster(X,)
         method_pars = dict()
         unpack_parameters(method_pars, trial, method, prefix="method::") # Also does trial.suggest
 
         tags = sk_cluster.cluster(d, trans_pars, method, method_pars)
+        d["tags"] = tags
 
-        score_type = "separation"
-        #score = compute_score(tags, d["labels"], d["values"], score_type)
-        score = metrics.separation_efficiency_opt(tags, d["labels"], d["values"], d["energy"])
+        score_type = "efficiency"
+        score = metrics.compute_score_mean(d, score_type)
 
-
-        test_idx = 55
-        fig,ax=plt.subplots(nrows=1, ncols=2, figsize=(10,5))
-        fig.suptitle(f"Score [{score_type}]: {score[test_idx]:.3f}, mean: {score.mean():.3f} (1 is best)")
-        for a in ax.flatten():
-            a.set_xlim(-10,10)
-            a.set_ylim(-10,10)
-
-        iadj = np.load("p2_sim_adj_map2.npy")
-        SAT = 4096
-        foc = FocalH()
-        foc.heatmap(d["values"][test_idx][iadj],d["labels"][test_idx][iadj],ax[0],SAT)
-
-        foc.heatmap(d["values"][test_idx][iadj],tags[test_idx][iadj],ax[1],SAT)
-
-        ax[0].set_title(f"Original")
-        ax[1].set_title(f"Mapped back")
-
-        fig.savefig(f"dump/trans_test_{trial.number}.png", bbox_inches="tight")
-        plt.clf()
-
-        return (score.mean() - 1)**2
+        return (score - 1)**2
 
     study = optuna.create_study()
     study.optimize(objective, n_trials=its)
