@@ -92,18 +92,26 @@ def separation_efficiency(tags, labels, values, energies, linearity_yaml="test",
 
     return efficiency
 
+
+def match_labels(predicted_sum, true_sum):
+    """
+    Should be changed to match by center-of-mass distances
+    """
+    cost_matrix = np.abs(np.subtract.outer(true_sum, predicted_sum))
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    return row_ind, col_ind
+
+
+# functio
+
+
 def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     """
     For some clustered event, compute whether they are resolved
     by looking at the energy confusion and energy resolution.
-    Binary classification. Tolerance interval. Threshold-Based Classification.
     This metric "scales" with energy.
     """
 
-    def match_labels(predicted_sum, true_sum):
-        cost_matrix = np.abs(np.subtract.outer(true_sum, predicted_sum))
-        row_ind, col_ind = linear_sum_assignment(cost_matrix)
-        return row_ind, col_ind
 
     sigma_E = energy_resolution(E, eres_a, eres_b, eres_c)
     E_true = reconstruct_energy(compute_sums(labels,values), lin_a, lin_b)
