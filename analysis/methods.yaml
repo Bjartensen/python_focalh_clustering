@@ -37,7 +37,10 @@ cnn:
       min: 50
       max: 100
 
+
+
 # sci-kit learn methods
+# Parametric
 kmeans:
   name: kmeans
   labels: True
@@ -55,11 +58,40 @@ kmeans:
     - name: max_iter
       type: int
       min: 1
-      max: 1000
+      max: 50
     - name: tol
       type: float
-      min: 0.0000001
+      #min: 0.00001
+      min: 0.1
       max: 1
+
+affinity_propagation:
+  name: affinity_propagation
+  labels: True
+  parametric: False
+  parameters:
+    - name: damping
+      type: float
+      min: 0.5
+      max: 1
+    - name: max_iter
+      type: int
+      min: 10
+      max: 200
+    - name: convergence_iter
+      type: int
+      min: 1
+      max: 20
+    - name: preference
+      type: float
+      min: -200
+      max: 200
+    - name: affinity
+      type: string
+      list:
+      - "euclidean"
+      - "precomputed"
+
 gauss:
   name: gauss
   labels: False
@@ -70,22 +102,22 @@ gauss:
       list:
       - "diag"
       - "full"
-    #    - name: tol
-    #      type: float
-    #      min: 0.0001
-    #      max: 0.1
+    - name: tol
+      type: float
+      min: 0.0001
+      max: 0.1
     - name: reg_covar
       type: float
       min: 0.0000001
       max: 0.1
-    #    - name: max_iter
-    #      type: int
-    #      min: 1
-    #      max: 1000
-    #    - name: n_init
-    #      type: int
-    #      min: 1
-    #      max: 100
+    - name: max_iter
+      type: int
+      min: 1
+      max: 1000
+    - name: n_init
+      type: int
+      min: 1
+      max: 100
     - name: init_params
       type: string
       list:
@@ -95,6 +127,23 @@ gauss:
       - "random_from_data"
     - name: warm_start
       type: bool
+
+baygauss:
+  name: baygauss
+  labels: False
+  parametric: False
+  parameters:
+    - name: n_components
+      type: int
+      min: 10
+      max: 10
+    - name: covariance_type
+      type: string
+      list:
+      - "diag"
+      - "full"
+
+# Non-parametric
 dbscan:
   name: dbscan
   labels: True
@@ -103,7 +152,7 @@ dbscan:
     - name: eps
       type: float
       min: 0.1
-      max: 1
+      max: 100
 hdbscan:
   name: hdbscan
   labels: True
@@ -127,26 +176,111 @@ optics:
     - name: min_samples
       type: int
       min: 1
-      max: 20
+      max: 100
+    - name: max_eps
+      type: int
+      min: 1
+      max: 100
+    - name: metric
+      type: string
+      list:
+        #      - "cityblock"
+        #      - "cosine"
+        - "euclidean"
+        #      - "l1"
+        #      - "l2"
+        #      - "manhattan"
+        #      - "braycurtis"
+        #      - "canberra"
+        #      - "chebyshev"
+        #      - "correlation"
+        #      - "dice"
+        #      - "hamming"
+        #      - "jaccard"
+        #      - "kulsinski"
+        #      - "mahalanobis"
+        #      - "minkowski"
+        #      - "rogerstanimoto"
+        #      - "russellrao"
+        #      - "seuclidean"
+        #      - "sokalmichener"
+        #      - "sokalsneath"
+        #      - "sqeuclidean"
+        #      - "yule"
     - name: xi
       type: float
-      min: 0.1
+      min: 0.01
       max: 1
     - name: min_cluster_size
       type: int
       min: 1
       max: 20
-baygauss:
-  name: baygauss
-  labels: False
-  parametric: False
-  parameters:
-    - name: n_components
-      type: int
-      min: 10
-      max: 10
-    - name: covariance_type
+    - name: algorithm
       type: string
       list:
-      - "diag"
-      - "full"
+      - "auto"
+      - "ball_tree"
+      - "kd_tree"
+      - "brute"
+    - name: leaf_size
+      type: int
+      min: 1
+      max: 50
+agglomerative:
+  name: agglomerative
+  labels: True
+  parametric: True
+  parameters:
+    - name: metric
+      type: string
+      list:
+      - "euclidean"
+      - "l1"
+      - "l2"
+      - "manhattan"
+      - "cosine"
+    - name: linkage
+      type: string
+      list:
+      - "ward"
+      - "complete"
+      - "average"
+      - "single"
+birch:
+  name: birch
+  labels: False
+  parametric: True
+  parameters:
+    - name: threshold
+      type: float
+      min: 0.01
+      max: 1
+    - name: branching_factor
+      type: int
+      min: 1
+      max: 200
+    - name: compute_labels
+      type: bool
+spectral:
+  name: spectral
+  labels: True
+  parametric: True
+  parameters:
+    - name: eigen_solver
+      type: string
+      list:
+      - "arpack"
+      - "lobpcg"
+    - name: affinity
+      type: string
+      list:
+      - "nearest_neighbors"
+      - "rbf"
+      - "precomputed"
+      - "precomputed_nearest_neighbors"
+    - name: assign_labels
+      type: string
+      list:
+      - "kmeans"
+      - "discretize"
+      - "cluster_qr"

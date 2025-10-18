@@ -67,7 +67,6 @@ def separation_efficiency(tags, labels, values, energies, linearity_yaml="test",
     """
     Compute separation efficiency (resolved showers) from
     linearity and energy resolution fits.
-
     """
 
     def load_fit(fit, source, type):
@@ -87,10 +86,14 @@ def separation_efficiency(tags, labels, values, energies, linearity_yaml="test",
     Nevents = len(tags)
 
     efficiency = np.zeros(Nevents*2).reshape(Nevents,2)
+    pairs = [None]*Nevents
     for i in range(Nevents):
-        efficiency[i] = resolved(tags[i], labels[i], values[i], energies[i], lin_a, lin_b, eres_a, eres_b, eres_c)
+        res, max_len, p = resolved(tags[i], labels[i], values[i], energies[i], lin_a, lin_b, eres_a, eres_b, eres_c)
+        efficiency[i] = (res, max_len)
+        pairs[i] = p
 
-    return efficiency
+    # Add matched list of reconstructed energies
+    return efficiency, pairs
 
 
 def match_labels(predicted_sum, true_sum):
@@ -102,9 +105,6 @@ def match_labels(predicted_sum, true_sum):
     return row_ind, col_ind
 
 
-# functio
-
-
 def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     """
     For some clustered event, compute whether they are resolved
@@ -112,6 +112,8 @@ def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     This metric "scales" with energy.
     """
 
+    if len(set(labels)) != len(E):
+        print("Metrics::Warning::resolved suppressed labels")
 
     sigma_E = energy_resolution(E, eres_a, eres_b, eres_c)
     E_true = reconstruct_energy(compute_sums(labels,values), lin_a, lin_b)
@@ -122,12 +124,24 @@ def resolved(tags, labels, values, E, lin_a, lin_b, eres_a, eres_b, eres_c):
     resolved = 0
     max_length = max(len(E_pred), len(E_true))
 
+    pairs = np.zeros(len(E)*2).reshape(-1,2)
+
     # TO-DO: with arrays
     for i in range(len(rows)):
+        pairs[i] = compute_sums(labels,values)[rows[i]], compute_sums(tags,values)[cols[i]]
+        #pairs[i] = E_true[rows[i]], E_pred[cols[i]]
         E_confusion = abs(E_true[rows[i]] - E_pred[cols[i]])
         if E_confusion < sigma_E[i]:
             resolved += 1
-    return resolved, max_length
+
+    return resolved, max_length, pairs
+
+
+def reconstruct_energy_from_characteristics(adc, linearity_yaml="test"):
+    linearity = load_fit(linearity_yaml, "mc", "linearity")
+    lin_a = linearity["a"]
+    lin_b = linearity["b"]
+    return reconstruct_energy(adc,lin_a,lin_b)
 
 
 def reconstruct_energy(adc,a,b):
@@ -144,16 +158,6 @@ def energy_resolution(E,a,b,c):
     sigma_E = np.sqrt( (a/np.sqrt(E))**2 + (b/E)**2 + c**2)
     return sigma_E * E
 
-
-# Retire
-def clusters_sum(clusters, values):
-    mask = clusters != 0
-    return values[mask].sum().astype(float)
-
-# Retire
-def labels_sum(labels, values):
-    mask = labels != 0
-    return values[mask].sum().astype(float)
 
 def total(labels, values):
     mask = labels != 0

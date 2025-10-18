@@ -36,7 +36,7 @@ class ModifiedAggregation:
         tag_it = 1
         clusters = 0
         while(count < 1E3):
-            seed_mask = v < self.seed
+            seed_mask = v < self.seed # I need to choose the maximum!
             limit_mask = labels != 0
             masked_data = ma.masked_array(v, mask = seed_mask | limit_mask)
             if np.all(masked_data.mask):  # Check if all elements are masked

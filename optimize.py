@@ -164,6 +164,34 @@ def handle_method(data: Any, method: str, its: int, timestamps, jobs: int):
             save_study(study, data, its, method, timestamps)
             print("Saved.")
 
+        case "affinity_propagation":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
+        case "agglomerative":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
+        case "birch":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
+        case "spectral":
+            print(f"Optimizing {method_name}")
+            study = sklearn_optimize(data, method, its, timestamps)
+            print(f"Study done. Best params: {study.best_params}")
+            save_study(study, data, its, method, timestamps)
+            print("Saved.")
+
         case _:
             raise ValueError(f"Unknown method: {method_name}")
 
@@ -258,7 +286,6 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
             models.append(copy.deepcopy(u))
             return float("inf")
 
-
         # Train
         trainer = Train(model=u, image_crit=image_criterion, learning_rate=pars["lr"], momentum=pars["momentum"])
         trainer.run(pars["epochs"], event_train, target_train)
@@ -268,11 +295,15 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
         labels_sq = dlabels_eval.squeeze().detach().numpy()
         values_sq = values_eval.squeeze().detach().numpy()
 
-        d["tags"] = tags
-        d["labels"] = labels
-        d["values"] = values
 
-        score = metrics.compute_score_mean(d, "efficiency")
+        eval_d = dict()
+        eval_d["tags"] = tags
+        eval_d["labels"] = labels_sq
+        eval_d["values"] = values_sq
+        eval_d["energy"] = energy_eval
+        # Will need more I'm pretty sure...
+
+        score = metrics.compute_score_mean(eval_d, "separation")
 
         return (score-1)**2
 
@@ -318,7 +349,6 @@ def unpack_parameters(par_keys, trial, config, prefix=""):
             par_keys[par['name']] = trial.suggest_categorical(prefix+par['name'], par['list'])
 
 
-
 def sklearn_optimize(data, method, its, timestamps):
     """
     I probably still want them separate, but they will be almost identical.
@@ -350,7 +380,7 @@ def sklearn_optimize(data, method, its, timestamps):
         tags = sk_cluster.cluster(d, trans_pars, method, method_pars)
         d["tags"] = tags
 
-        score_type = "efficiency"
+        score_type = "separation"
         score = metrics.compute_score_mean(d, score_type)
 
         return (score - 1)**2

@@ -51,6 +51,7 @@ def run(data: Any, study: Any):
     coverage = metrics.compute_score(result, "coverage")
     particles = metrics.compute_score(result, "count_labels")
     avg_energy = metrics.average_energy(result["energy"])
+    # Add a metric that just computes the reconstructed energies
 
     """
     result["data"] = data

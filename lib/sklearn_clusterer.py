@@ -67,6 +67,8 @@ class SklearnClusterer:
                 model = cluster.HDBSCAN(**pars)
             case "optics":
                 model = cluster.OPTICS(**pars)
+            case "affinity_propagation":
+                model = cluster.AffinityPropagation(**pars)
 
             # Parametric
             case "baygauss":
@@ -75,6 +77,12 @@ class SklearnClusterer:
                 model = cluster.KMeans(n_clusters, **pars)
             case "gauss":
                 model = mixture.GaussianMixture(n_clusters, **pars)
+            case "agglomerative":
+                model = cluster.AgglomerativeClustering(n_clusters, **pars)
+            case "spectral":
+                model = cluster.SpectralClustering(n_clusters, **pars)
+            case "birch":
+                model = cluster.Birch(**pars, n_clusters=n_clusters)
             case _:
                 raise ValueError(f"Unknown method: {method_name}")
         return model
@@ -133,6 +141,8 @@ class SklearnClusterer:
         X = [None]*Nevents # Transformed coordinates
         Y = [None]*Nevents # Clustered labels of transformed coordinates
 
+        print(f"Clustering {Nevents}")
+
         # transformation(x, y, z, trans):
         for i in range(Nevents):
             X[i] = self.transformation(x[i], y[i], z[i], trans)
@@ -146,7 +156,6 @@ class SklearnClusterer:
             # if parametric: Move into loop in case of parametric
             # model = self.handle_method(method["name"], n_clusters, method_pars)
             try:
-
                 if method["parametric"]:
                     # use metrics.count()?
                     model = self.handle_method(method["name"], method_pars, count_labels(data["labels"][i]))
@@ -164,6 +173,7 @@ class SklearnClusterer:
                 Y[i] = np.zeros(len(X[i]))
                 tags[i] = dataloader.kdtree_map(X[i], np.column_stack([x[i], y[i]]), Y[i])
                 print(f"ValueError")
+        print(f"Clustered.")
 
         return tags
 
