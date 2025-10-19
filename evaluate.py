@@ -32,7 +32,6 @@ def load_data(type):
 
 def run(data: Any, study: Any):
     print("Running evaluation")
-    #tags, labels, values, energy = handle_method(data, study)
     result = handle_method(data, study)
     tags = result["tags"]
 
@@ -43,7 +42,8 @@ def run(data: Any, study: Any):
     # Compute different things
     # Efficiency
     eff = metrics.compute_score(result, "efficiency")
-    sep_eff = metrics.separation_efficiency(result["tags"], result["labels"], result["values"], result["energy"], linearity_yaml="test", energy_resolution_yaml="test")
+    #sep_eff = metrics.separation_efficiency(result["tags"], result["labels"], result["values"], result["energy"], linearity_yaml="test", energy_resolution_yaml="test")
+    d_sep = metrics.separation_efficiency(result, linearity_yaml="test", energy_resolution_yaml="test")
     vmeas = metrics.compute_score(result, "vmeasure")
 
 
@@ -53,16 +53,10 @@ def run(data: Any, study: Any):
     avg_energy = metrics.average_energy(result["energy"])
     # Add a metric that just computes the reconstructed energies
 
-    """
-    result["data"] = data
-    result["study"] = study
-    result["tags"] = d["tags"]
-    result["labels"] = labels
-    result["values"] = values
-    """
     result["data"] = data
     result["efficiency"] = eff
-    result["separation"] = sep_eff
+    result["separation"] = d_sep["separation_efficiency"]
+    result["energy_pairs"] = d_sep["energy_pairs"]
     result["vmeasure"] = vmeas
     #result["vmeasure_weighted"] = vmeas_weighted
     result["coverage"] = coverage

@@ -117,8 +117,8 @@ class SklearnClusterer:
         
         d["X"] = X
         d["Y"] = Y
-        d["tags"] = tags[iadj]
-        d["values"] = d["values"][iadj]
+        d["tags"] = tags
+        d["values"] = d["values"]
 
         return d
 

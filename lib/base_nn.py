@@ -202,6 +202,8 @@ class Data(): # or DataLoader, DataTransformer?
         values_list = []
         energy_list = []
         coms_list = []
+        x_list = []
+        y_list = []
 
         for i in range(entries):
             try:
@@ -217,6 +219,8 @@ class Data(): # or DataLoader, DataTransformer?
             mapping_list.append(torch.from_numpy(d["mapping"]).unsqueeze(0).unsqueeze(0))
             dlabels_list.append(torch.from_numpy(d["labels"]).unsqueeze(0).unsqueeze(0))
             values_list.append(torch.from_numpy(d["values"]).unsqueeze(0).unsqueeze(0))
+            x_list.append(d["x"])
+            y_list.append(d["y"])
             energy_list.append(d["energy"])
             coms_list.append(d["coms"])
 
@@ -234,9 +238,10 @@ class Data(): # or DataLoader, DataTransformer?
             "mapping": mapping_tensor,
             "dlabels": dlabels_tensor,
             "values": values_tensor,
+            "x": x_list,
+            "y": y_list,
             "energy": energy_list,
             "coms": coms_list,
-            "metadata": {"version": 1},
         }
 
         return data
@@ -264,6 +269,8 @@ class Data(): # or DataLoader, DataTransformer?
         d["coms"] = coms
         d["labels"] = npdlabels
         d["values"] = npval # saturation?
+        d["x"] = npx
+        d["y"] = npy
         d["mapping"] = mapping
         d["energy"] = npenergy
 

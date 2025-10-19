@@ -26,6 +26,8 @@ class UNetClusterer:
         values_list = []
         energy_list = []
         coms_list = []
+        x_list = []
+        y_list = []
         dataloader = BNN.Data()
         for file in files:
             tfile = ROOT.TFile(file["path"], "READ")
@@ -37,6 +39,8 @@ class UNetClusterer:
             mapping_list.append(data["mapping"])
             dlabel_list.append(data["dlabels"])
             values_list.append(data["values"])
+            x_list.append(data["x"])
+            y_list.append(data["y"])
             for e in data["energy"]:
                 energy_list.append(e)
             for c in data["coms"]:
@@ -48,6 +52,9 @@ class UNetClusterer:
         mapping = torch.cat(mapping_list)
         dlabels = torch.cat(dlabel_list)
         values = torch.cat(values_list)
+        x = np.concatenate(x_list)
+        y = np.concatenate(y_list)
+        print(x.shape, y.shape)
 
         d = dict()
         d["events"] = events
@@ -56,6 +63,8 @@ class UNetClusterer:
         d["mapping"] = mapping
         d["labels"] = dlabels
         d["values"] = values
+        d["x"] = x
+        d["y"] = y
         d["energy"] = energy_list
         d["coms"] = coms_list
         adj = np.load("p2_image_adj_21x21.npy")
@@ -94,8 +103,9 @@ class UNetClusterer:
         ma = ModifiedAggregation(seed=seed_rel, agg=agg_rel)
         clusters,_ = ma.run(adj, vals)
         lab = dataloader.invert_labels(clusters, d["mapping"], vals, Ncells)
-        d["tags"] = lab
-        d["values"] = d["values"][iadj]
+        d["tags"] = lab[iadj][iadj][iadj] # Lol...
+        #d["values"] = d["values"][iadj]
+        d["values"] = d["values"]
 
         return d
 
@@ -103,6 +113,7 @@ class UNetClusterer:
 
         torch_dataloader = DataLoader(events, batch_size=1000, shuffle=False)
 
+        iadj = np.load("p2_sim_adj_map2.npy")
         outputs = []
         for batch in torch_dataloader:
             with torch.no_grad():
@@ -122,5 +133,6 @@ class UNetClusterer:
             ma = ModifiedAggregation(seed=seed_rel, agg=agg_rel)
             clusters,_ = ma.run(adj, vals)
             lab = dataloader.invert_labels(clusters, mapping[i][0].detach().numpy(), vals, Ncells)
-            tags[i] = lab
+            tags[i] = lab[iadj][iadj][iadj]
+
         return tags

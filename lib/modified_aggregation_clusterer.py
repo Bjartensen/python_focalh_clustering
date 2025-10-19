@@ -54,8 +54,9 @@ class ModifiedAggregationClusterer:
         ma = ModifiedAggregation(params["seed"], params["agg"])
         tags,_ = ma.run(adj, d["values"][iadj])
 
-        d["tags"] = tags
-        d["values"] = d["values"][iadj]
+        d["tags"] = tags[iadj][iadj][iadj] # ...
+        #d["values"] = d["values"][iadj]
+        d["values"] = d["values"]
 
         return d
 

@@ -206,18 +206,17 @@ class FocalH:
 
 
 
-    def heatmap_labels(self, ttree, entry, ax=None, colors=""):
+    def heatmap_labels(self, ttree, entry, ax=None, colors="", saturation=4095):
         if ax is None:
             fig, ax = plt.subplots()
 
         x, y, values, fractions, labels, label_indices = self.read_tree_entry(ttree, entry)
-        
+        values = values.clip(max=saturation)
         NCollections = len(set(labels))
-        
         grouped = np.zeros(NCollections * len(values)).reshape(NCollections, -1) # needed?
         grouped_c = np.zeros(len(values) * 4).reshape(len(values), 4) # 4 for rgb
 
-        norm = Normalize(vmin=0, vmax=4095)
+        norm = Normalize(vmin=0, vmax=saturation)
 
         if colors == "":
             colors = (['Greens', 'Reds', 'Blues', 'Oranges',
@@ -240,7 +239,8 @@ class FocalH:
             if values[icell] == 0:
                 temp_color = [1,1,1,1]
             else:
-                temp_color = plt.colormaps[colors[maj-1]](norm(fractions[max_e] * values[icell])) # some modulo of max colors to be safe            
+                #temp_color = plt.colormaps[colors[maj-1]](norm(fractions[max_e] * values[icell])) # some modulo of max colors to be safe            
+                temp_color = plt.colormaps[colors[maj-1]](norm(values[icell])) # some modulo of max colors to be safe            
             grouped_c[self.search(x[icell], y[icell])] = temp_color
 
         patches = PatchCollection(self.polygons, alpha=1)

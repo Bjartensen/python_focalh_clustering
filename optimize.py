@@ -244,9 +244,6 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
     Optimizing CNN.
     """
 
-    # Get data
-    #events, targets, counts, mapping, dlabels, energy = p2_data_img(data)
-    #adj = np.load("p2_image_adj_21x21.npy")
 
     unet_cluster = UNetClusterer()
 
@@ -260,6 +257,8 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
     mapping = d["mapping"]
     dlabels = d["labels"]
     values = d["values"]
+    x = d["x"]
+    y = d["y"]
     energy = d["energy"]
 
     event_train, event_eval, \
@@ -268,8 +267,10 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
     mapping_train, mapping_eval, \
     dlabels_train, dlabels_eval, \
     values_train, values_eval, \
+    x_train, x_eval, \
+    y_train, y_eval, \
     energy_train, energy_eval \
-    = train_test_split(events, targets, counts, mapping, dlabels, values, energy, test_size=0.4)
+    = train_test_split(events, targets, counts, mapping, dlabels, values, x, y, energy, test_size=0.4)
 
     dataloader = BNN.Data()
 
@@ -300,6 +301,8 @@ def cnn_optimize(data: Any, method: Any, its: int, timestamps):
         eval_d["tags"] = tags
         eval_d["labels"] = labels_sq
         eval_d["values"] = values_sq
+        eval_d["x"] = x_eval
+        eval_d["y"] = y_eval
         eval_d["energy"] = energy_eval
         # Will need more I'm pretty sure...
 
