@@ -58,6 +58,9 @@ def run(data: Any, study: Any):
     result["separation"] = d_sep["separation_efficiency"]
     result["energy_pairs"] = d_sep["energy_pairs"]
     result["vmeasure"] = vmeas
+    result["tag_coms"] = d_sep["tag_coms"]
+    result["label_coms"] = d_sep["label_coms"]
+    result["matched_indices"] = d_sep["matched_indices"]
     #result["vmeasure_weighted"] = vmeas_weighted
     result["coverage"] = coverage
     result["particles"] = particles
@@ -101,7 +104,7 @@ def handle_method(data: Any, study: Any):
         d["labels"] = d["labels"].squeeze().detach().numpy()
         d["values"] = d["values"].squeeze().detach().numpy()
         return d
-    elif name in ["hdbscan", "dbscan", "kmeans", "gauss"]:
+    elif name in ["hdbscan", "dbscan", "kmeans", "gauss", "birch", "agglomerative", "optics", "affinity_propagation", "spectral"]:
         pars = study["study"].best_params
         trans_pars, method_pars = util.split_trans_method(pars)
         cluster = SklearnClusterer()
