@@ -2495,6 +2495,71 @@ eval_two:
 # eval_two END
 
 
+# train_single START
+train_single:
+  name: train_single
+  files:
+    - path: "data/train/TRAIN_E350_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E300_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E250_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E200_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E150_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E100_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E80_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E60_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E40_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+    - path: "data/train/TRAIN_E20_P1_N1000.root"
+      particles: 1
+      saturation: 4095
+      meta:
+        source: mc
+        detector: prototype2
+# train_single END
 
 
 # train_single_small START
