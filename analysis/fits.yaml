@@ -27,16 +27,16 @@ my_bsc:
 test:
   mc:
     linearity:
-      a: 298.9
-      b: 7570
+      a: 181.52
+      b: -3272.28
     energy_resolution:
       a: 0.97
       b: 0.00
       c: 0.08
   tb:
     linearity:
-      a: 484.4
-      b: 12160
+      a: 187.25
+      b: -1692.16
     energy_resolution:
       a: 1.28
       b: 0.00
